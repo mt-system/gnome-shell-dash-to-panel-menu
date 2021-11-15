@@ -3,7 +3,7 @@
 </p>
 <p align="left">
     <img src="/media/design/svg/GitHub_logo.svg" width="120" style="margin-left: 4px"/>
-    <a href="https://extensions.gnome.org/extension/1160/dash-to-panel/" >
+    <a href="https://extensions.gnome.org/extension/1160/dash-to-panel-menu/" >
         <img src="/media/design/svg/Gnome_logo.svg" width="120px"/>
     </a>
 </p>
@@ -12,9 +12,9 @@
 
 ### Introduction
 
-Dash to Panel is an icon taskbar for Gnome Shell. This extension moves the dash into the gnome main panel so that the application launchers and system tray are combined into a single panel, similar to that found in KDE Plasma and Windows 7+. A separate dock is no longer needed for easy access to running and favorited applications. 
+Dash to Panel Menu is an icon taskbar for Gnome Shell. This extension moves the dash into the gnome main panel so that the application launchers and system tray are combined into a single panel, similar to that found in KDE Plasma and Windows 7+. A separate dock is no longer needed for easy access to running and favorited applications.
 
-Beyond that, just about every aspect of the panel is fully customizable. From positioning and scaling panel elements to running indicators to multi-monitor display, to window previews and even intellihide, Dash to Panel has everything you need to make your workspace feel like home.
+Beyond that, just about every aspect of the panel is fully customizable. From positioning and scaling panel elements to running indicators to multi-monitor display, to window previews and even intellihide, Dash to Panel Menu has everything you need to make your workspace feel like home.
 
 ### Features
 
@@ -98,9 +98,9 @@ Beyond that, just about every aspect of the panel is fully customizable. From po
 ### Installation
 
 **To install the most recent official release:
-[Visit Dash-to-Panel at GNOME Extensions](https://extensions.gnome.org/extension/1160/dash-to-panel/)**
+[Visit Dash-to-Panel at GNOME Extensions](https://extensions.gnome.org/extension/1160/dash-to-panel-menu/)**
 
-To install a development version from source, please see the [Installation wiki page](https://github.com/jderose9/dash-to-panel/wiki/Installation).
+To install a development version from source, please see the [Installation wiki page](https://github.com/milottit/dash-to-panel-menu/wiki/Installation).
 
 ## 
 ### FAQ
@@ -117,7 +117,7 @@ How do I move the notifications to somewhere other than the top center? [Panel O
 
 How do I display Minimize & Maximize buttons? In the Tweak Tool application, turn on `Windows > Titlebar Buttons > Minimize & Maximize`.
 
-How do I reset the extension to its default settings? `dconf reset -f /org/gnome/shell/extensions/dash-to-panel/`.
+How do I reset the extension to its default settings? `dconf reset -f /org/gnome/shell/extensions/dash-to-panel-menu/`.
 
 ## 
 ### Themes
@@ -136,14 +136,14 @@ This extension manipulates the Gnome Main Panel, aka Top Bar. So, most other ext
 ##
 ### Volunteers needed!
 
-This extension could be even better with your help! Any items in the issue tracker labelled `help wanted` or `good first issue` are up for grabs. For more info, see the [Contributing wiki page](https://github.com/jderose9/dash-to-panel/wiki/Contributing).
+This extension could be even better with your help! Any items in the issue tracker labelled `help wanted` or `good first issue` are up for grabs. For more info, see the [Contributing wiki page](https://github.com/milottit/dash-to-panel-menu-menu/wiki/Contributing).
 
 ## 
 ### Credits
 
-This extension is developed and maintained by [@jderose9](https://github.com/jderose9) and [@charlesg99](https://github.com/charlesg99).
+This extension is developed and maintained by [@milottit](https://github.com/milottit).
 
-Significant portions of code in this extension were derived from [Dash-to-Dock](https://micheleg.github.io/dash-to-dock/index.html).
+Significant portions of code in this extension were derived from Dash-To-Panel from [@jderose9](https://github.com/jderose9) and [@charlesg99](https://github.com/charlesg99) and therefore also from [Dash-to-Dock](https://micheleg.github.io/dash-to-dock/index.html).
 
 Additional credits: This extension leverages the work for [ZorinOS Taskbar](https://github.com/ZorinOS/zorin-taskbar) (used in [ZorinOS](https://zorinos.com/)) to show window previews and allow the dash from [Dash-to-Dock](https://micheleg.github.io/dash-to-dock/index.html) to be embedded in the Gnome main panel.
 Code to set anchor position taken from [Thoma5/gnome-shell-extension-bottompanel](https://github.com/Thoma5/gnome-shell-extension-bottompanel).
@@ -184,6 +184,6 @@ Ideas for recursing child actors and assigning inline styles are based on code f
 ## 
 ### License & Terms ![](media/design/png/copyleft-16.png)
 
-Dash to Panel is available under the terms of the GPL-v2 or later license See [`COPYING`](https://github.com/jderose9/dash-to-panel/blob/master/COPYING) for details.
+Dash to Panel Menu is available under the terms of the GPL-v2 or later license See [`COPYING`](https://github.com/milottit/dash-to-panel-menu/blob/master/COPYING) for details.
 
 ![](https://img.shields.io/badge/Language-JavaScript-yellow.svg) ![](https://img.shields.io/badge/Licence-GPL--2.0-blue.svg)

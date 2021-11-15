@@ -52,6 +52,9 @@ const PanelSettings = Me.imports.panelSettings;
 const Taskbar = Me.imports.taskbar;
 const Progress = Me.imports.progress;
 const _ = imports.gettext.domain(Utils.TRANSLATION_DOMAIN).gettext;
+const AppMenu = Me.imports.appMenu;
+
+const appSys = Shell.AppSystem.get_default();
 
 //timeout names
 const T1 = 'setStyleTimeout';
@@ -76,14 +79,14 @@ let DOT_STYLE = {
     CILIORA: "CILIORA",
     METRO: "METRO",
     SOLID: "SOLID"
-}
+};
 
 let DOT_POSITION = {
     TOP: "TOP",
     BOTTOM: "BOTTOM",
     LEFT: 'LEFT',
     RIGHT: 'RIGHT'
-}
+};
 
 let recentlyClickedAppLoopId = 0;
 let recentlyClickedApp = null;
@@ -109,9 +112,12 @@ let tracker = Shell.WindowTracker.get_default();
 var taskbarAppIcon = Utils.defineClass({
     Name: 'DashToPanel.TaskbarAppIcon',
     Extends: AppDisplay.AppIcon,
-    ParentConstrParams: [[0, 'app'], [2]],
+    ParentConstrParams: [
+        [ 0, 'app' ],
+        [ 2 ]
+    ],
 
-    _init: function(appInfo, panel, iconParams, previewMenu, iconAnimator) {
+    _init: function (appInfo, panel, iconParams, previewMenu, iconAnimator) {
         this.dtpPanel = panel;
         this._nWindows = 0;
         this.window = appInfo.window;
@@ -121,12 +127,13 @@ var taskbarAppIcon = Utils.defineClass({
 
         this._timeoutsHandler = new Utils.TimeoutsHandler();
 
-		// Fix touchscreen issues before the listener is added by the parent constructor.
-        this._onTouchEvent = function(actor, event) {
+        // Fix touchscreen issues before the listener is added by the parent constructor.
+        this._onTouchEvent = function (actor, event) {
             if (event.type() == Clutter.EventType.TOUCH_BEGIN) {
                 // Open the popup menu on long press.
                 this._setPopupTimeout();
-            } else if (this._menuTimeoutId != 0 && (event.type() == Clutter.EventType.TOUCH_END || event.type() == Clutter.EventType.TOUCH_CANCEL)) {    
+            } else if (this._menuTimeoutId != 0 && (event.type() == Clutter.EventType.TOUCH_END || event
+                .type() == Clutter.EventType.TOUCH_CANCEL)) {
                 // Activate/launch the application.
                 this.activate(1);
                 this._removeMenuTimeout();
@@ -136,9 +143,10 @@ var taskbarAppIcon = Utils.defineClass({
             return Clutter.EVENT_STOP;
         };
         // Hack for missing TOUCH_END event.
-        this._onLeaveEvent = function(actor, event) {
+        this._onLeaveEvent = function (actor, event) {
             this.actor.fake_release();
-            if (this._menuTimeoutId != 0) this.activate(1); // Activate/launch the application if TOUCH_END didn't fire.
+            if (this._menuTimeoutId != 0) this.activate(
+                1); // Activate/launch the application if TOUCH_END didn't fire.
             this._removeMenuTimeout();
         };
 
@@ -146,31 +154,39 @@ var taskbarAppIcon = Utils.defineClass({
 
         Utils.wrapActor(this.icon);
         Utils.wrapActor(this);
-        
+
         this._dot.set_width(0);
         this._isGroupApps = Me.settings.get_boolean('group-apps');
-        
-        this._container = new St.Widget({ style_class: 'dtp-container', layout_manager: new Clutter.BinLayout() });
+
+        this._container = new St.Widget({
+            style_class: 'dtp-container',
+            layout_manager: new Clutter
+                .BinLayout()
+        });
         this._dotsContainer = new St.Widget({ layout_manager: new Clutter.BinLayout() });
-        this._dtpIconContainer = new St.Widget({ layout_manager: new Clutter.BinLayout(), style: getIconContainerStyle(panel.checkIfVertical()) });
+        this._dtpIconContainer = new St.Widget({
+            layout_manager: new Clutter.BinLayout(),
+            style: getIconContainerStyle(panel.checkIfVertical())
+        });
 
         this.actor.remove_actor(this._iconContainer);
-        
+
         this._dtpIconContainer.add_child(this._iconContainer);
 
         if (appInfo.window) {
             let box = new St.BoxLayout();
 
-            this._windowTitle = new St.Label({ 
-                y_align: Clutter.ActorAlign.CENTER, 
-                x_align: Clutter.ActorAlign.START, 
-                style_class: 'overview-label' 
+            this._windowTitle = new St.Label({
+                y_align: Clutter.ActorAlign.CENTER,
+                x_align: Clutter.ActorAlign.START,
+                style_class: 'overview-label'
             });
-            
+
             this._updateWindowTitle();
             this._updateWindowTitleStyle();
 
-            this._scaleFactorChangedId = Utils.getStageTheme().connect('changed', () => this._updateWindowTitleStyle());
+            this._scaleFactorChangedId = Utils.getStageTheme().connect('changed', () => this
+                ._updateWindowTitleStyle());
 
             box.add_child(this._dtpIconContainer);
             box.add_child(this._windowTitle);
@@ -189,7 +205,7 @@ var taskbarAppIcon = Utils.defineClass({
 
         // Monitor windows-changes instead of app state.
         // Keep using the same Id and function callback (that is extended)
-        if(this._stateChangedId > 0) {
+        if (this._stateChangedId > 0) {
             this.app.disconnect(this._stateChangedId);
             this._stateChangedId = 0;
         }
@@ -198,67 +214,90 @@ var taskbarAppIcon = Utils.defineClass({
         this._setAppIconPadding();
         this._showDots();
 
-        this._focusWindowChangedId = global.display.connect('notify::focus-window', 
-                                                            Lang.bind(this, this._onFocusAppChanged));
+        this._focusWindowChangedId = global.display.connect('notify::focus-window',
+            Lang.bind(this, this._onFocusAppChanged));
 
         this._windowEnteredMonitorId = this._windowLeftMonitorId = 0;
         this._stateChangedId = this.app.connect('windows-changed', Lang.bind(this, this.onWindowsChanged));
 
         if (!this.window) {
             if (Me.settings.get_boolean('isolate-monitors')) {
-                this._windowEnteredMonitorId = Utils.DisplayWrapper.getScreen().connect('window-entered-monitor', this.onWindowEnteredOrLeft.bind(this));
-                this._windowLeftMonitorId = Utils.DisplayWrapper.getScreen().connect('window-left-monitor', this.onWindowEnteredOrLeft.bind(this));
+                this._windowEnteredMonitorId = Utils.DisplayWrapper.getScreen().connect(
+                    'window-entered-monitor', this.onWindowEnteredOrLeft.bind(this));
+                this._windowLeftMonitorId = Utils.DisplayWrapper.getScreen().connect('window-left-monitor',
+                    this.onWindowEnteredOrLeft.bind(this));
             }
-            
+
             this._titleWindowChangeId = 0;
             this._minimizedWindowChangeId = 0;
         } else {
-            this._titleWindowChangeId = this.window.connect('notify::title', 
-                                                Lang.bind(this, this._updateWindowTitle));
+            this._titleWindowChangeId = this.window.connect('notify::title',
+                Lang.bind(this, this._updateWindowTitle));
 
             this._minimizedWindowChangeId = this.window.connect('notify::minimized',
-                                                Lang.bind(this, this._updateWindowTitleStyle));
+                Lang.bind(this, this._updateWindowTitleStyle));
         }
-        
+
         this._scrollEventId = this.actor.connect('scroll-event', this._onMouseScroll.bind(this));
 
         this._overviewWindowDragEndId = Main.overview.connect('window-drag-end',
-                                                Lang.bind(this, this._onOverviewWindowDragEnd));
+            Lang.bind(this, this._onOverviewWindowDragEnd));
 
         this._switchWorkspaceId = global.window_manager.connect('switch-workspace',
-                                                Lang.bind(this, this._onSwitchWorkspace));
+            Lang.bind(this, this._onSwitchWorkspace));
 
         this._hoverChangeId = this.actor.connect('notify::hover', () => this._onAppIconHoverChanged());
-        
+
         this._dtpSettingsSignalIds = [
-            Me.settings.connect('changed::animate-appicon-hover', Lang.bind(this, this._onAnimateAppiconHoverChanged)),
+            Me.settings.connect('changed::animate-appicon-hover', Lang.bind(this, this
+                ._onAnimateAppiconHoverChanged)),
             Me.settings.connect('changed::dot-position', Lang.bind(this, this._settingsChangeRefresh)),
             Me.settings.connect('changed::dot-size', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-style-focused', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-style-unfocused', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-dominant', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-override', Lang.bind(this, this._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-style-focused', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-style-unfocused', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-color-dominant', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-color-override', Lang.bind(this, this
+                ._settingsChangeRefresh)),
             Me.settings.connect('changed::dot-color-1', Lang.bind(this, this._settingsChangeRefresh)),
             Me.settings.connect('changed::dot-color-2', Lang.bind(this, this._settingsChangeRefresh)),
             Me.settings.connect('changed::dot-color-3', Lang.bind(this, this._settingsChangeRefresh)),
             Me.settings.connect('changed::dot-color-4', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-unfocused-different', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-unfocused-1', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-unfocused-2', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-unfocused-3', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::dot-color-unfocused-4', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::focus-highlight', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::focus-highlight-dominant', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::focus-highlight-color', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::focus-highlight-opacity', Lang.bind(this, this._settingsChangeRefresh)),
-            Me.settings.connect('changed::group-apps-label-font-size', Lang.bind(this, this._updateWindowTitleStyle)),
-            Me.settings.connect('changed::group-apps-label-font-weight', Lang.bind(this, this._updateWindowTitleStyle)),
-            Me.settings.connect('changed::group-apps-label-font-color', Lang.bind(this, this._updateWindowTitleStyle)),
-            Me.settings.connect('changed::group-apps-label-font-color-minimized', Lang.bind(this, this._updateWindowTitleStyle)),
-            Me.settings.connect('changed::group-apps-label-max-width', Lang.bind(this, this._updateWindowTitleStyle)),
-            Me.settings.connect('changed::group-apps-use-fixed-width', Lang.bind(this, this._updateWindowTitleStyle)),
-            Me.settings.connect('changed::group-apps-underline-unfocused', Lang.bind(this, this._settingsChangeRefresh))
-        ]
+            Me.settings.connect('changed::dot-color-unfocused-different', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-color-unfocused-1', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-color-unfocused-2', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-color-unfocused-3', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::dot-color-unfocused-4', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::focus-highlight', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::focus-highlight-dominant', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::focus-highlight-color', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::focus-highlight-opacity', Lang.bind(this, this
+                ._settingsChangeRefresh)),
+            Me.settings.connect('changed::group-apps-label-font-size', Lang.bind(this, this
+                ._updateWindowTitleStyle)),
+            Me.settings.connect('changed::group-apps-label-font-weight', Lang.bind(this, this
+                ._updateWindowTitleStyle)),
+            Me.settings.connect('changed::group-apps-label-font-color', Lang.bind(this, this
+                ._updateWindowTitleStyle)),
+            Me.settings.connect('changed::group-apps-label-font-color-minimized', Lang.bind(this, this
+                ._updateWindowTitleStyle)),
+            Me.settings.connect('changed::group-apps-label-max-width', Lang.bind(this, this
+                ._updateWindowTitleStyle)),
+            Me.settings.connect('changed::group-apps-use-fixed-width', Lang.bind(this, this
+                ._updateWindowTitleStyle)),
+            Me.settings.connect('changed::group-apps-underline-unfocused', Lang.bind(this, this
+                ._settingsChangeRefresh))
+        ];
 
         this.forcedOverview = false;
 
@@ -267,47 +306,52 @@ var taskbarAppIcon = Utils.defineClass({
         this._numberOverlay();
     },
 
-    getDragActor: function() {
+    getDragActor: function () {
         return this.app.create_icon_texture(this.dtpPanel.taskbar.iconSize);
     },
 
     // Used by TaskbarItemContainer to animate appIcons on hover
-    getCloneButton: function() {
+    getCloneButton: function () {
         // The source of the clone is this._container,
         // using this.actor directly would break DnD style.
         let clone = new Clutter.Clone({
             source: this.actor.child,
-            x: this.actor.child.x, y: this.actor.child.y,
-            width: this.actor.child.width, height: this.actor.child.height,
+            x: this.actor.child.x,
+            y: this.actor.child.y,
+            width: this.actor.child.width,
+            height: this.actor.child.height,
             pivot_point: new Utils.getPoint({ x: 0.5, y: 0.5 }),
             opacity: 255,
             reactive: false,
-            x_align: Clutter.ActorAlign.CENTER, y_align: Clutter.ActorAlign.CENTER,
+            x_align: Clutter.ActorAlign.CENTER,
+            y_align: Clutter.ActorAlign.CENTER,
         });
 
         // "clone" of this.actor
         return new St.Button({
             child: clone,
-            x: this.actor.x, y: this.actor.y,
-            width: this.actor.width, height: this.actor.height,
+            x: this.actor.x,
+            y: this.actor.y,
+            width: this.actor.width,
+            height: this.actor.height,
             reactive: false,
         });
     },
 
-    shouldShowTooltip: function() {
-        if (!Me.settings.get_boolean('show-tooltip') || 
+    shouldShowTooltip: function () {
+        if (!Me.settings.get_boolean('show-tooltip') ||
             (!this.isLauncher && Me.settings.get_boolean("show-window-previews") &&
-             this.getAppIconInterestingWindows().length > 0)) {
+                this.getAppIconInterestingWindows().length > 0)) {
             return false;
         } else {
-            return this.actor.hover && !this.window && 
-                   (!this._menu || !this._menu.isOpen) && 
-                   (this._previewMenu.getCurrentAppIcon() !== this);
+            return this.actor.hover && !this.window &&
+                (!this._menu || !this._menu.isOpen) &&
+                (this._previewMenu.getCurrentAppIcon() !== this);
         }
     },
 
-    _onAppIconHoverChanged: function() {
-        if (!Me.settings.get_boolean('show-window-previews') || 
+    _onAppIconHoverChanged: function () {
+        if (!Me.settings.get_boolean('show-window-previews') ||
             (!this.window && !this._nWindows)) {
             return;
         }
@@ -319,7 +363,7 @@ var taskbarAppIcon = Utils.defineClass({
         }
     },
 
-    _onDestroy: function() {
+    _onDestroy: function () {
         this.callParent('_onDestroy');
         this._destroyed = true;
 
@@ -329,17 +373,17 @@ var taskbarAppIcon = Utils.defineClass({
 
         // Disconect global signals
         // stateChangedId is already handled by parent)
-        
-        if(this._overviewWindowDragEndId)
+
+        if (this._overviewWindowDragEndId)
             Main.overview.disconnect(this._overviewWindowDragEndId);
 
-        if(this._focusWindowChangedId)
+        if (this._focusWindowChangedId)
             global.display.disconnect(this._focusWindowChangedId);
 
-        if(this._titleWindowChangeId)
+        if (this._titleWindowChangeId)
             this.window.disconnect(this._titleWindowChangeId);
 
-        if(this._minimizedWindowChangeId)
+        if (this._minimizedWindowChangeId)
             this.window.disconnect(this._minimizedWindowChangeId);
 
         if (this._windowEnteredMonitorId) {
@@ -347,10 +391,10 @@ var taskbarAppIcon = Utils.defineClass({
             Utils.DisplayWrapper.getScreen().disconnect(this._windowLeftMonitorId);
         }
 
-        if(this._switchWorkspaceId)
+        if (this._switchWorkspaceId)
             global.window_manager.disconnect(this._switchWorkspaceId);
 
-        if(this._scaleFactorChangedId)
+        if (this._scaleFactorChangedId)
             Utils.getStageTheme().disconnect(this._scaleFactorChangedId);
 
         if (this._hoverChangeId) {
@@ -362,28 +406,28 @@ var taskbarAppIcon = Utils.defineClass({
         }
 
         for (let i = 0; i < this._dtpSettingsSignalIds.length; ++i) {
-            Me.settings.disconnect(this._dtpSettingsSignalIds[i]);
+            Me.settings.disconnect(this._dtpSettingsSignalIds[ i ]);
         }
     },
 
-    onWindowsChanged: function() {
+    onWindowsChanged: function () {
         this._updateWindows();
         this.updateIcon();
     },
 
-    onWindowEnteredOrLeft: function() {
+    onWindowEnteredOrLeft: function () {
         if (this._checkIfFocusedApp()) {
             this._updateWindows();
             this._displayProperIndicator();
         }
     },
 
-    updateTitleStyle: function() {
+    updateTitleStyle: function () {
         this._updateWindowTitleStyle();
     },
 
     // Update indicator and target for minimization animation
-    updateIcon: function() {
+    updateIcon: function () {
 
         // If (for unknown reason) the actor is not on the stage the reported size
         // and position are random values, which might exceeds the integer range
@@ -394,16 +438,16 @@ var taskbarAppIcon = Utils.defineClass({
 
         let rect = new Meta.Rectangle();
 
-        [rect.x, rect.y] = this.actor.get_transformed_position();
-        [rect.width, rect.height] = this.actor.get_transformed_size();
+        [ rect.x, rect.y ] = this.actor.get_transformed_position();
+        [ rect.width, rect.height ] = this.actor.get_transformed_size();
 
-        let windows = this.window ? [this.window] : this.getAppIconInterestingWindows(true);
-        windows.forEach(function(w) {
+        let windows = this.window ? [ this.window ] : this.getAppIconInterestingWindows(true);
+        windows.forEach(function (w) {
             w.set_icon_geometry(rect);
         });
     },
 
-    _onAnimateAppiconHoverChanged: function() {
+    _onAnimateAppiconHoverChanged: function () {
         if (Me.settings.get_boolean('animate-appicon-hover')) {
             this._container.add_style_class_name('animate-appicon-hover');
 
@@ -415,7 +459,8 @@ var taskbarAppIcon = Utils.defineClass({
                     this.icon._iconBin.child.set_size(this.icon.iconSize, this.icon.iconSize);
                 } else {
                     let iconMappedId = this.icon._iconBin.child.connect('notify::mapped', () => {
-                        this.icon._iconBin.child.set_size(this.icon.iconSize, this.icon.iconSize);
+                        this.icon._iconBin.child.set_size(this.icon.iconSize, this.icon
+                            .iconSize);
                         this.icon._iconBin.child.disconnect(iconMappedId);
                     });
                 }
@@ -433,9 +478,9 @@ var taskbarAppIcon = Utils.defineClass({
         }
     },
 
-    _onMouseScroll: function(actor, event) {
+    _onMouseScroll: function (actor, event) {
         let scrollAction = Me.settings.get_string('scroll-icon-action');
-        
+
         if (scrollAction === 'PASS_THROUGH') {
             return this.dtpPanel._onPanelMouseScroll(actor, event);
         } else if (scrollAction === 'NOTHING' || (!this.window && !this._nWindows)) {
@@ -445,7 +490,7 @@ var taskbarAppIcon = Utils.defineClass({
         let direction = Utils.getMouseScrollDirection(event);
 
         if (direction && !this._timeoutsHandler.getId(T2)) {
-            this._timeoutsHandler.add([T2, Me.settings.get_int('scroll-icon-delay'), () => {}]);
+            this._timeoutsHandler.add([ T2, Me.settings.get_int('scroll-icon-delay'), () => {} ]);
 
             let windows = this.getAppIconInterestingWindows();
 
@@ -453,8 +498,8 @@ var taskbarAppIcon = Utils.defineClass({
             Utils.activateSiblingWindow(windows, direction, this.window);
         }
     },
-    
-    _showDots: function() {
+
+    _showDots: function () {
         // Just update style if dots already exist
         if (this._focusedDots && this._unfocusedDots) {
             this._updateWindows();
@@ -462,9 +507,10 @@ var taskbarAppIcon = Utils.defineClass({
         }
 
         if (!this._isGroupApps) {
-            this._focusedDots = new St.Widget({ 
+            this._focusedDots = new St.Widget({
                 layout_manager: new Clutter.BinLayout(),
-                x_expand: true, y_expand: true,
+                x_expand: true,
+                y_expand: true,
                 visible: false
             });
 
@@ -473,59 +519,61 @@ var taskbarAppIcon = Utils.defineClass({
                 this.actor.disconnect(mappedId);
             });
         } else {
-            this._focusedDots = new St.DrawingArea(), 
-            this._unfocusedDots = new St.DrawingArea();
-            this._focusedDots._tweeningToSize = null, 
-            this._unfocusedDots._tweeningToSize = null;
-            
-            this._focusedDots.connect('repaint', Lang.bind(this, function() {
-                if(this._dashItemContainer.animatingOut) {
+            this._focusedDots = new St.DrawingArea(),
+                this._unfocusedDots = new St.DrawingArea();
+            this._focusedDots._tweeningToSize = null,
+                this._unfocusedDots._tweeningToSize = null;
+
+            this._focusedDots.connect('repaint', Lang.bind(this, function () {
+                if (this._dashItemContainer.animatingOut) {
                     // don't draw and trigger more animations if the icon is in the middle of
                     // being added to the panel
                     return;
                 }
-                this._drawRunningIndicator(this._focusedDots, Me.settings.get_string('dot-style-focused'), true);
+                this._drawRunningIndicator(this._focusedDots, Me.settings.get_string(
+                    'dot-style-focused'), true);
                 this._displayProperIndicator();
             }));
-            
-            this._unfocusedDots.connect('repaint', Lang.bind(this, function() {
-                if(this._dashItemContainer.animatingOut) {
+
+            this._unfocusedDots.connect('repaint', Lang.bind(this, function () {
+                if (this._dashItemContainer.animatingOut) {
                     // don't draw and trigger more animations if the icon is in the middle of
                     // being added to the panel
                     return;
                 }
-                this._drawRunningIndicator(this._unfocusedDots, Me.settings.get_string('dot-style-unfocused'), false);
+                this._drawRunningIndicator(this._unfocusedDots, Me.settings.get_string(
+                    'dot-style-unfocused'), false);
                 this._displayProperIndicator();
             }));
-                
+
             this._dotsContainer.add_child(this._unfocusedDots);
-    
+
             this._updateWindows();
 
-            this._timeoutsHandler.add([T3, 0, () => {
+            this._timeoutsHandler.add([ T3, 0, () => {
                 this._resetDots();
                 this._displayProperIndicator();
-            }]);
+            } ]);
         }
 
         this._dotsContainer.add_child(this._focusedDots);
     },
 
-    _resetDots: function() {
+    _resetDots: function () {
         let position = Me.settings.get_string('dot-position');
         let isHorizontalDots = position == DOT_POSITION.TOP || position == DOT_POSITION.BOTTOM;
 
-        [this._focusedDots, this._unfocusedDots].forEach(d => {
+        [ this._focusedDots, this._unfocusedDots ].forEach(d => {
             d._tweeningToSize = null;
             d.set_size(-1, -1);
             d.x_expand = d.y_expand = false;
 
-            d[isHorizontalDots ? 'width' : 'height'] = 1;
-            d[(isHorizontalDots ? 'y' : 'x') + '_expand'] = true;
+            d[ isHorizontalDots ? 'width' : 'height' ] = 1;
+            d[ (isHorizontalDots ? 'y' : 'x') + '_expand' ] = true;
         });
     },
 
-    _settingsChangeRefresh: function() {
+    _settingsChangeRefresh: function () {
         if (this._isGroupApps) {
             this._updateWindows();
             this._resetDots();
@@ -536,56 +584,61 @@ var taskbarAppIcon = Utils.defineClass({
         this._displayProperIndicator(true);
     },
 
-    _updateWindowTitleStyle: function() {
+    _updateWindowTitleStyle: function () {
         if (this._windowTitle) {
             let useFixedWidth = Me.settings.get_boolean('group-apps-use-fixed-width');
-            let variableWidth = !useFixedWidth || this.dtpPanel.checkIfVertical() || this.dtpPanel.taskbar.fullScrollView;
+            let variableWidth = !useFixedWidth || this.dtpPanel.checkIfVertical() || this.dtpPanel.taskbar
+                .fullScrollView;
             let fontWeight = Me.settings.get_string('group-apps-label-font-weight');
             let fontScale = Me.desktopSettings.get_double('text-scaling-factor');
             let fontColor = this.window.minimized ?
-                            Me.settings.get_string('group-apps-label-font-color-minimized') :
-                            Me.settings.get_string('group-apps-label-font-color');
+                Me.settings.get_string('group-apps-label-font-color-minimized') :
+                Me.settings.get_string('group-apps-label-font-color');
             let scaleFactor = Utils.getScaleFactor();
             let maxLabelWidth = Me.settings.get_int('group-apps-label-max-width') * scaleFactor;
 
-            this._windowTitle[(maxLabelWidth > 0 ? 'show' : 'hide')]();
+            this._windowTitle[ (maxLabelWidth > 0 ? 'show' : 'hide') ]();
 
             this._windowTitle.clutter_text.natural_width = useFixedWidth ? maxLabelWidth : 0;
             this._windowTitle.clutter_text.natural_width_set = useFixedWidth;
-            this._windowTitle.set_width(variableWidth ? -1 : maxLabelWidth + TITLE_RIGHT_PADDING * scaleFactor);
+            this._windowTitle.set_width(variableWidth ? -1 : maxLabelWidth + TITLE_RIGHT_PADDING *
+                scaleFactor);
 
-            this._windowTitle.set_style('font-size: ' + Me.settings.get_int('group-apps-label-font-size') * fontScale + 'px;' +
-                                        'font-weight: ' + fontWeight + ';' +
-                                        (useFixedWidth ? '' : 'max-width: ' + maxLabelWidth + 'px;') + 
-                                        'color: ' + fontColor);
+            this._windowTitle.set_style('font-size: ' + Me.settings.get_int('group-apps-label-font-size') *
+                fontScale + 'px;' +
+                'font-weight: ' + fontWeight + ';' +
+                (useFixedWidth ? '' : 'max-width: ' + maxLabelWidth + 'px;') +
+                'color: ' + fontColor);
         }
     },
 
-    _updateWindowTitle: function() {
+    _updateWindowTitle: function () {
         if (this._windowTitle.text != this.window.title) {
-            this._windowTitle.text = (this.window.title ? this.window.title : this.app.get_name()).replace(/\r?\n|\r/g, '').trim();
-            
+            this._windowTitle.text = (this.window.title ? this.window.title : this.app.get_name()).replace(
+                /\r?\n|\r/g, '').trim();
+
             if (this._focusedDots) {
                 this._displayProperIndicator();
             }
         }
     },
 
-    _setIconStyle: function(isFocused) {
+    _setIconStyle: function (isFocused) {
         let inlineStyle = 'margin: 0;';
 
-        if(Me.settings.get_boolean('focus-highlight') && 
-           this._checkIfFocusedApp() && !this.isLauncher &&  
-           (!this.window || isFocused) && !this._isThemeProvidingIndicator() && this._checkIfMonitorHasFocus()) {
+        if (Me.settings.get_boolean('focus-highlight') &&
+            this._checkIfFocusedApp() && !this.isLauncher &&
+            (!this.window || isFocused) && !this._isThemeProvidingIndicator() && this
+                ._checkIfMonitorHasFocus()) {
             let focusedDotStyle = Me.settings.get_string('dot-style-focused');
             let isWide = this._isWideDotStyle(focusedDotStyle);
             let pos = Me.settings.get_string('dot-position');
             let highlightMargin = isWide ? Me.settings.get_int('dot-size') : 0;
 
-            if(!this.window) {
+            if (!this.window) {
                 let containerWidth = this._dtpIconContainer.get_width() / Utils.getScaleFactor();;
-                let backgroundSize = containerWidth + "px " + 
-                                     (containerWidth - (pos == DOT_POSITION.BOTTOM ? highlightMargin : 0)) + "px;";
+                let backgroundSize = containerWidth + "px " +
+                    (containerWidth - (pos == DOT_POSITION.BOTTOM ? highlightMargin : 0)) + "px;";
 
                 if (focusedDotStyle == DOT_STYLE.CILIORA || focusedDotStyle == DOT_STYLE.SEGMENTED)
                     highlightMargin += 1;
@@ -597,47 +650,51 @@ var taskbarAppIcon = Utils.defineClass({
                         bgSvg += (this.dtpPanel.checkIfVertical() ? '_2' : '_3');
                     }
 
-                    inlineStyle += "background-image: url('" + Me.path + bgSvg + ".svg');" + 
-                                   "background-position: 0 " + (pos == DOT_POSITION.TOP ? highlightMargin : 0) + "px;" +
-                                   "background-size: " + backgroundSize;
+                    inlineStyle += "background-image: url('" + Me.path + bgSvg + ".svg');" +
+                        "background-position: 0 " + (pos == DOT_POSITION.TOP ? highlightMargin : 0) +
+                        "px;" +
+                        "background-size: " + backgroundSize;
                 }
             }
 
             let highlightColor = this._getFocusHighlightColor();
-            inlineStyle += "background-color: " + cssHexTocssRgba(highlightColor, Me.settings.get_int('focus-highlight-opacity') * 0.01);
+            inlineStyle += "background-color: " + cssHexTocssRgba(highlightColor, Me.settings.get_int(
+                'focus-highlight-opacity') * 0.01);
         }
-        
-        if(this._dotsContainer.get_style() != inlineStyle && this._dotsContainer.mapped) {
+
+        if (this._dotsContainer.get_style() != inlineStyle && this._dotsContainer.mapped) {
             if (!this._isGroupApps) {
                 //when the apps are ungrouped, set the style synchronously so the icons don't jump around on taskbar redraw
                 this._dotsContainer.set_style(inlineStyle);
             } else if (!this._timeoutsHandler.getId(T1)) {
                 //graphical glitches if i dont set this on a timeout
-                this._timeoutsHandler.add([T1, 0, () => this._dotsContainer.set_style(inlineStyle)]);
+                this._timeoutsHandler.add([ T1, 0, () => this._dotsContainer.set_style(inlineStyle) ]);
             }
         }
     },
 
-    _checkIfFocusedApp: function() {
+    _checkIfFocusedApp: function () {
         return tracker.focus_app == this.app;
     },
 
-    _checkIfMonitorHasFocus: function() {
-        return global.display.focus_window && 
-               (!Me.settings.get_boolean('multi-monitors') || // only check same monitor index if multi window is enabled.
-                !Me.settings.get_boolean('isolate-monitors') || 
+    _checkIfMonitorHasFocus: function () {
+        return global.display.focus_window &&
+            (!Me.settings.get_boolean('multi-monitors') ||
+                // only check same monitor index if multi window is enabled.
+                !Me.settings.get_boolean('isolate-monitors') ||
                 global.display.focus_window.get_monitor() === this.dtpPanel.monitor.index);
     },
 
-    _setAppIconPadding: function() {
+    _setAppIconPadding: function () {
         let padding = getIconPadding(this.dtpPanel.monitor.index);
         let margin = Me.settings.get_int('appicon-margin');
 
-        this.actor.set_style('padding:' + (this.dtpPanel.checkIfVertical() ? margin + 'px 0' : '0 ' + margin + 'px;'));
+        this.actor.set_style('padding:' + (this.dtpPanel.checkIfVertical() ? margin + 'px 0' : '0 ' +
+            margin + 'px;'));
         this._iconContainer.set_style('padding: ' + padding + 'px;');
     },
 
-    popupMenu: function() {
+    popupMenu: function () {
         this._removeMenuTimeout();
         this.fake_release();
 
@@ -672,17 +729,17 @@ var taskbarAppIcon = Utils.defineClass({
         return false;
     },
 
-    _onFocusAppChanged: function(windowTracker) {
+    _onFocusAppChanged: function (windowTracker) {
         this._displayProperIndicator(true);
     },
 
-    _onOverviewWindowDragEnd: function(windowTracker) {
-        this._timeoutsHandler.add([T4, 0, () => this._displayProperIndicator()]);
+    _onOverviewWindowDragEnd: function (windowTracker) {
+        this._timeoutsHandler.add([ T4, 0, () => this._displayProperIndicator() ]);
     },
 
-    _onSwitchWorkspace: function(windowTracker) {
+    _onSwitchWorkspace: function (windowTracker) {
         if (this._isGroupApps) {
-            this._timeoutsHandler.add([T5, 0, () => this._displayProperIndicator(true)]);
+            this._timeoutsHandler.add([ T5, 0, () => this._displayProperIndicator(true) ]);
         } else {
             this._displayProperIndicator();
         }
@@ -695,15 +752,16 @@ var taskbarAppIcon = Utils.defineClass({
 
         this._setIconStyle(isFocused);
 
-        if(!this._isGroupApps) {
+        if (!this._isGroupApps) {
             if (this.window && (Me.settings.get_boolean('group-apps-underline-unfocused') || isFocused)) {
-                let align = Clutter.ActorAlign[position == DOT_POSITION.TOP || position == DOT_POSITION.LEFT ? 'START' : 'END'];
-                
+                let align = Clutter.ActorAlign[ position == DOT_POSITION.TOP || position == DOT_POSITION
+                    .LEFT ? 'START' : 'END' ];
+
                 this._focusedDots.set_size(0, 0);
-                this._focusedDots[isHorizontalDots ? 'height' : 'width'] = this._getRunningIndicatorSize();
+                this._focusedDots[ isHorizontalDots ? 'height' : 'width' ] = this._getRunningIndicatorSize();
 
                 this._focusedDots.y_align = this._focusedDots.x_align = Clutter.ActorAlign.FILL;
-                this._focusedDots[(isHorizontalDots ? 'y' : 'x') + '_align'] = align;
+                this._focusedDots[ (isHorizontalDots ? 'y' : 'x') + '_align' ] = align;
                 this._focusedDots.background_color = this._getRunningIndicatorColor(isFocused);
                 this._focusedDots.show();
             } else if (this._focusedDots.visible) {
@@ -711,87 +769,90 @@ var taskbarAppIcon = Utils.defineClass({
             }
         } else {
             let sizeProp = isHorizontalDots ? 'width' : 'height';
-            let containerSize = this._container[sizeProp];
+            let containerSize = this._container[ sizeProp ];
             let focusedDotStyle = Me.settings.get_string('dot-style-focused');
             let unfocusedDotStyle = Me.settings.get_string('dot-style-unfocused');
             let focusedIsWide = this._isWideDotStyle(focusedDotStyle);
             let unfocusedIsWide = this._isWideDotStyle(unfocusedDotStyle);
-    
+
             let newFocusedDotsSize = 0;
             let newFocusedDotsOpacity = 0;
             let newUnfocusedDotsSize = 0;
             let newUnfocusedDotsOpacity = 0;
-            
+
             isFocused = this._checkIfFocusedApp() && this._checkIfMonitorHasFocus();
 
-            this._timeoutsHandler.add([T6, 0, () => {
+            this._timeoutsHandler.add([ T6, 0, () => {
                 if (!this._destroyed) {
-                    if(isFocused) 
+                    if (isFocused)
                         this.actor.add_style_class_name('focused');
                     else
                         this.actor.remove_style_class_name('focused');
                 }
-            }]);
+            } ]);
 
-            if(focusedIsWide) {
+            if (focusedIsWide) {
                 newFocusedDotsSize = (isFocused && this._nWindows > 0) ? containerSize : 0;
                 newFocusedDotsOpacity = 255;
             } else {
                 newFocusedDotsSize = containerSize;
                 newFocusedDotsOpacity = (isFocused && this._nWindows > 0) ? 255 : 0;
             }
-    
-            if(unfocusedIsWide) {
+
+            if (unfocusedIsWide) {
                 newUnfocusedDotsSize = (!isFocused && this._nWindows > 0) ? containerSize : 0;
                 newUnfocusedDotsOpacity = 255;
             } else {
                 newUnfocusedDotsSize = containerSize;
                 newUnfocusedDotsOpacity = (!isFocused && this._nWindows > 0) ? 255 : 0;
             }
-    
+
             // Only animate if...
             // animation is enabled in settings
             // AND (going from a wide style to a narrow style indicator or vice-versa
             // OR going from an open app to a closed app or vice versa)
-            if(Me.settings.get_boolean('animate-app-switch') &&
-               ((focusedIsWide != unfocusedIsWide) ||
-                (this._focusedDots[sizeProp] != newUnfocusedDotsSize || this._unfocusedDots[sizeProp] != newFocusedDotsSize))) {
-                this._animateDotDisplay(this._focusedDots, newFocusedDotsSize, this._unfocusedDots, newUnfocusedDotsOpacity, force, sizeProp);
-                this._animateDotDisplay(this._unfocusedDots, newUnfocusedDotsSize, this._focusedDots, newFocusedDotsOpacity, force, sizeProp);
+            if (Me.settings.get_boolean('animate-app-switch') &&
+                ((focusedIsWide != unfocusedIsWide) ||
+                    (this._focusedDots[ sizeProp ] != newUnfocusedDotsSize || this._unfocusedDots[ sizeProp ] !=
+                        newFocusedDotsSize))) {
+                this._animateDotDisplay(this._focusedDots, newFocusedDotsSize, this._unfocusedDots,
+                    newUnfocusedDotsOpacity, force, sizeProp);
+                this._animateDotDisplay(this._unfocusedDots, newUnfocusedDotsSize, this._focusedDots,
+                    newFocusedDotsOpacity, force, sizeProp);
             } else {
                 this._focusedDots.opacity = newFocusedDotsOpacity;
                 this._unfocusedDots.opacity = newUnfocusedDotsOpacity;
-                this._focusedDots[sizeProp] = newFocusedDotsSize;
-                this._unfocusedDots[sizeProp] = newUnfocusedDotsSize;
+                this._focusedDots[ sizeProp ] = newFocusedDotsSize;
+                this._unfocusedDots[ sizeProp ] = newUnfocusedDotsSize;
             }
         }
     },
 
     _animateDotDisplay: function (dots, newSize, otherDots, newOtherOpacity, force, sizeProp) {
-        if((dots[sizeProp] != newSize && dots._tweeningToSize !== newSize) || force) {
-            let tweenOpts = { 
+        if ((dots[ sizeProp ] != newSize && dots._tweeningToSize !== newSize) || force) {
+            let tweenOpts = {
                 time: Taskbar.DASH_ANIMATION_TIME,
                 transition: 'easeInOutCubic',
-                onComplete: Lang.bind(this, function() { 
-                    if(newOtherOpacity > 0)
+                onComplete: Lang.bind(this, function () {
+                    if (newOtherOpacity > 0)
                         otherDots.opacity = newOtherOpacity;
                     dots._tweeningToSize = null;
                 })
             };
 
-            if(newOtherOpacity == 0)
+            if (newOtherOpacity == 0)
                 otherDots.opacity = newOtherOpacity;
 
-            tweenOpts[sizeProp] = newSize;
+            tweenOpts[ sizeProp ] = newSize;
             dots._tweeningToSize = newSize;
 
             Utils.animate(dots, tweenOpts);
         }
     },
 
-    _isFocusedWindow: function() {
+    _isFocusedWindow: function () {
         let focusedWindow = global.display.focus_window;
-        
+
         while (focusedWindow) {
             if (focusedWindow == this.window) {
                 return true;
@@ -803,10 +864,10 @@ var taskbarAppIcon = Utils.defineClass({
         return false;
     },
 
-    _isWideDotStyle: function(dotStyle) {
-        return dotStyle == DOT_STYLE.SEGMENTED || 
-            dotStyle == DOT_STYLE.CILIORA || 
-            dotStyle == DOT_STYLE.METRO || 
+    _isWideDotStyle: function (dotStyle) {
+        return dotStyle == DOT_STYLE.SEGMENTED ||
+            dotStyle == DOT_STYLE.CILIORA ||
+            dotStyle == DOT_STYLE.METRO ||
             dotStyle == DOT_STYLE.SOLID;
     },
 
@@ -814,11 +875,11 @@ var taskbarAppIcon = Utils.defineClass({
         // This is an attempt to determine if the theme is providing their own
         // running indicator by way of a border image on the icon, for example in
         // the theme Ciliora
-        return (this.icon.actor.get_stage() && 
-                this.icon.actor.get_theme_node().get_border_image());
+        return (this.icon.actor.get_stage() &&
+            this.icon.actor.get_theme_node().get_border_image());
     },
 
-    activate: function(button, handleAsGrouped) {
+    activate: function (button, handleAsGrouped) {
         let event = Clutter.get_current_event();
         let modifiers = event ? event.get_state() : 0;
 
@@ -828,24 +889,23 @@ var taskbarAppIcon = Utils.defineClass({
         // We don't change the CTRL-click behaviour: in such case we just chain
         // up the parent method and return.
         if (modifiers & Clutter.ModifierType.CONTROL_MASK) {
-                // Keep default behaviour: launch new window
-                // By calling the parent method I make it compatible
-                // with other extensions tweaking ctrl + click
-                this.callParent('activate', button);
-                return;
+            // Keep default behaviour: launch new window
+            // By calling the parent method I make it compatible
+            // with other extensions tweaking ctrl + click
+            this.callParent('activate', button);
+            return;
         }
 
         // We check what type of click we have and if the modifier SHIFT is
         // being used. We then define what buttonAction should be for this
         // event.
         let buttonAction = 0;
-        if (button && button == 2 ) {
+        if (button && button == 2) {
             if (modifiers & Clutter.ModifierType.SHIFT_MASK)
                 buttonAction = Me.settings.get_string('shift-middle-click-action');
             else
                 buttonAction = Me.settings.get_string('middle-click-action');
-        }
-        else if (button && button == 1) {
+        } else if (button && button == 1) {
             if (modifiers & Clutter.ModifierType.SHIFT_MASK)
                 buttonAction = Me.settings.get_string('shift-click-action');
             else
@@ -865,24 +925,31 @@ var taskbarAppIcon = Utils.defineClass({
             if (this.window && !handleAsGrouped) {
                 //ungrouped applications behaviors
                 switch (buttonAction) {
-                    case 'RAISE': case 'CYCLE': case 'CYCLE-MIN': case 'MINIMIZE': case 'TOGGLE-SHOWPREVIEW': case 'TOGGLE-CYCLE':
-                        if (!Main.overview._shown && 
-                            (buttonAction == 'MINIMIZE' || buttonAction == 'TOGGLE-SHOWPREVIEW' || buttonAction == 'TOGGLE-CYCLE' || buttonAction == 'CYCLE-MIN') && 
-                            (this._isFocusedWindow() || (buttonAction == 'MINIMIZE' && (button == 2 || modifiers & Clutter.ModifierType.SHIFT_MASK)))) {
-                                this.window.minimize();
+                    case 'RAISE':
+                    case 'CYCLE':
+                    case 'CYCLE-MIN':
+                    case 'MINIMIZE':
+                    case 'TOGGLE-SHOWPREVIEW':
+                    case 'TOGGLE-CYCLE':
+                        if (!Main.overview._shown &&
+                            (buttonAction == 'MINIMIZE' || buttonAction == 'TOGGLE-SHOWPREVIEW' ||
+                                buttonAction == 'TOGGLE-CYCLE' || buttonAction == 'CYCLE-MIN') &&
+                            (this._isFocusedWindow() || (buttonAction == 'MINIMIZE' && (button == 2 ||
+                                modifiers & Clutter.ModifierType.SHIFT_MASK)))) {
+                            this.window.minimize();
                         } else {
                             Main.activateWindow(this.window);
                         }
-                        
+
                         break;
-        
+
                     case "LAUNCH":
                         this._launchNewInstance();
                         break;
 
                     case "QUIT":
                         this.window.delete(global.get_current_time());
-                        break; 
+                        break;
                 }
             } else {
                 //grouped application behaviors
@@ -893,50 +960,49 @@ var taskbarAppIcon = Utils.defineClass({
                     case "RAISE":
                         activateAllWindows(this.app, monitor);
                         break;
-        
+
                     case "LAUNCH":
                         this._launchNewInstance();
                         break;
-        
+
                     case "MINIMIZE":
                         // In overview just activate the app, unless the acion is explicitely
                         // requested with a keyboard modifier
-                        if (!Main.overview._shown || modifiers){
+                        if (!Main.overview._shown || modifiers) {
                             // If we have button=2 or a modifier, allow minimization even if
                             // the app is not focused
                             if (appHasFocus || button == 2 || modifiers & Clutter.ModifierType.SHIFT_MASK) {
                                 // minimize all windows on double click and always in the case of primary click without
                                 // additional modifiers
-                                let all_windows = (button == 1 && ! modifiers) || event.get_click_count() > 1;
+                                let all_windows = (button == 1 && !modifiers) || event.get_click_count() >
+                                    1;
                                 minimizeWindow(this.app, all_windows, monitor);
-                            }
-                            else
+                            } else
                                 activateAllWindows(this.app, monitor);
-                        }
-                        else
+                        } else
                             this.app.activate();
                         break;
-        
+
                     case "CYCLE":
-                        if (!Main.overview._shown){
-                            if (appHasFocus) 
+                        if (!Main.overview._shown) {
+                            if (appHasFocus)
                                 cycleThroughWindows(this.app, false, false, monitor);
                             else {
                                 activateFirstWindow(this.app, monitor);
                             }
-                        }
-                        else
+                        } else
                             this.app.activate();
                         break;
                     case "CYCLE-MIN":
-                        if (!Main.overview._shown){
-                            if (appHasFocus || (recentlyClickedApp == this.app && recentlyClickedAppWindows[recentlyClickedAppIndex % recentlyClickedAppWindows.length] == "MINIMIZE")) 
+                        if (!Main.overview._shown) {
+                            if (appHasFocus || (recentlyClickedApp == this.app && recentlyClickedAppWindows[
+                                recentlyClickedAppIndex % recentlyClickedAppWindows.length ] ==
+                                "MINIMIZE"))
                                 cycleThroughWindows(this.app, false, true, monitor);
                             else {
                                 activateFirstWindow(this.app, monitor);
                             }
-                        }
-                        else
+                        } else
                             this.app.activate();
                         break;
                     case "TOGGLE-SHOWPREVIEW":
@@ -953,11 +1019,10 @@ var taskbarAppIcon = Utils.defineClass({
                                 } else if (previewedAppIcon != this) {
                                     this._previewMenu.open(this);
                                 }
-    
+
                                 this.emit('sync-tooltip');
-                            } 
-                        }
-                        else
+                            }
+                        } else
                             this.app.activate();
                         break;
                     case "TOGGLE-CYCLE":
@@ -969,9 +1034,8 @@ var taskbarAppIcon = Utils.defineClass({
                                     activateFirstWindow(this.app, monitor);
                             } else {
                                 cycleThroughWindows(this.app, false, false, monitor);
-                            } 
-                        }
-                        else
+                            }
+                        } else
                             this.app.activate();
                         break;
                     case "QUIT":
@@ -979,50 +1043,49 @@ var taskbarAppIcon = Utils.defineClass({
                         break;
                 }
             }
-        }
-        else {
+        } else {
             this._launchNewInstance();
         }
 
         Main.overview.hide();
     },
 
-    _launchNewInstance: function() {
+    _launchNewInstance: function () {
         if (this.app.can_open_new_window()) {
             let appActions = this.app.get_app_info().list_actions();
             let newWindowIndex = appActions.indexOf('new-window');
 
-            if(Me.settings.get_boolean('animate-window-launch')) {
+            if (Me.settings.get_boolean('animate-window-launch')) {
                 this.animateLaunch();
             }
 
             if (newWindowIndex < 0) {
                 this.app.open_new_window(-1);
             } else {
-                this.app.launch_action(appActions[newWindowIndex], global.get_current_time(), -1);
+                this.app.launch_action(appActions[ newWindowIndex ], global.get_current_time(), -1);
             }
         } else {
-            let windows = this.window ? [this.window] : this.app.get_windows();
+            let windows = this.window ? [ this.window ] : this.app.get_windows();
 
             if (windows.length) {
-                Main.activateWindow(windows[0]);
+                Main.activateWindow(windows[ 0 ]);
             } else {
                 this.app.activate();
             }
         }
     },
 
-    _updateWindows: function() {
-        let windows = [this.window];
-        
+    _updateWindows: function () {
+        let windows = [ this.window ];
+
         if (!this.window) {
             windows = this.getAppIconInterestingWindows();
-        
+
             this._nWindows = windows.length;
-    
-            for (let i = 1; i <= MAX_INDICATORS; i++){
-                let className = 'running'+i;
-                if(i != this._nWindows)
+
+            for (let i = 1; i <= MAX_INDICATORS; i++) {
+                let className = 'running' + i;
+                if (i != this._nWindows)
                     this.actor.remove_style_class_name(className);
                 else
                     this.actor.add_style_class_name(className);
@@ -1032,15 +1095,15 @@ var taskbarAppIcon = Utils.defineClass({
         this._previewMenu.update(this, windows);
     },
 
-    _getRunningIndicatorCount: function() {
+    _getRunningIndicatorCount: function () {
         return Math.min(this._nWindows, MAX_INDICATORS);
     },
 
-    _getRunningIndicatorSize: function() {
+    _getRunningIndicatorSize: function () {
         return Me.settings.get_int('dot-size') * Utils.getScaleFactor();
     },
 
-    _getRunningIndicatorColor: function(isFocused) {
+    _getRunningIndicatorColor: function (isFocused) {
         let color;
         const fallbackColor = new Clutter.Color({ red: 82, green: 148, blue: 226, alpha: 255 });
 
@@ -1048,21 +1111,22 @@ var taskbarAppIcon = Utils.defineClass({
             let dce = new Utils.DominantColorExtractor(this.app);
             let palette = dce._getColorPalette();
             if (palette) {
-                color = Clutter.color_from_string(palette.original)[1];
+                color = Clutter.color_from_string(palette.original)[ 1 ];
             } else { // unable to determine color, fall back to theme
                 let themeNode = this._dot.get_theme_node();
                 color = themeNode.get_background_color();
 
                 // theme didn't provide one, use a default
-                if(color.alpha == 0) color = fallbackColor;
+                if (color.alpha == 0) color = fallbackColor;
             }
-        } else if(Me.settings.get_boolean('dot-color-override')) {
+        } else if (Me.settings.get_boolean('dot-color-override')) {
             let dotColorSettingPrefix = 'dot-color-';
-            
-            if(!isFocused && Me.settings.get_boolean('dot-color-unfocused-different'))
+
+            if (!isFocused && Me.settings.get_boolean('dot-color-unfocused-different'))
                 dotColorSettingPrefix = 'dot-color-unfocused-';
 
-            color = Clutter.color_from_string(Me.settings.get_string(dotColorSettingPrefix + (this._getRunningIndicatorCount() || 1) ))[1];
+            color = Clutter.color_from_string(Me.settings.get_string(dotColorSettingPrefix + (this
+                ._getRunningIndicatorCount() || 1)))[ 1 ];
         } else {
             // Re-use the style - background color, and border width and color -
             // of the default dot
@@ -1070,13 +1134,13 @@ var taskbarAppIcon = Utils.defineClass({
             color = themeNode.get_background_color();
 
             // theme didn't provide one, use a default
-            if(color.alpha == 0) color = fallbackColor;
+            if (color.alpha == 0) color = fallbackColor;
         }
 
         return color;
     },
 
-    _getFocusHighlightColor: function() {
+    _getFocusHighlightColor: function () {
         if (Me.settings.get_boolean('focus-highlight-dominant')) {
             let dce = new Utils.DominantColorExtractor(this.app);
             let palette = dce._getColorPalette();
@@ -1085,7 +1149,7 @@ var taskbarAppIcon = Utils.defineClass({
         return Me.settings.get_string('focus-highlight-color');
     },
 
-    _drawRunningIndicator: function(area, type, isFocused) {
+    _drawRunningIndicator: function (area, type, isFocused) {
         let n = this._getRunningIndicatorCount();
 
         if (!n) {
@@ -1095,7 +1159,7 @@ var taskbarAppIcon = Utils.defineClass({
         let position = Me.settings.get_string('dot-position');
         let isHorizontalDots = position == DOT_POSITION.TOP || position == DOT_POSITION.BOTTOM;
         let bodyColor = this._getRunningIndicatorColor(isFocused);
-        let [areaWidth, areaHeight] = area.get_surface_size();
+        let [ areaWidth, areaHeight ] = area.get_surface_size();
         let cr = area.get_context();
         let size = this._getRunningIndicatorSize();
 
@@ -1120,10 +1184,13 @@ var taskbarAppIcon = Utils.defineClass({
                 cr.translate(startX, startY);
                 Clutter.cairo_set_source_color(cr, bodyColor);
                 cr.newSubPath();
-                cr.rectangle.apply(cr, [0, 0].concat(isHorizontalDots ? [areaSize, size] : [size, areaSize]));
+                cr.rectangle.apply(cr, [ 0, 0 ].concat(isHorizontalDots ? [ areaSize, size ] : [ size,
+                    areaSize
+                ]));
                 cr.fill();
             } else {
-                let blackenedLength = (1 / 48) * areaSize; // need to scale with the SVG for the stacked highlight
+                let blackenedLength = (1 / 48) *
+                    areaSize; // need to scale with the SVG for the stacked highlight
                 let darkenedLength = isFocused ? (2 / 48) * areaSize : (10 / 48) * areaSize;
                 let blackenedColor = bodyColor.shade(.3);
                 let darkenedColor = bodyColor.shade(.7);
@@ -1134,15 +1201,21 @@ var taskbarAppIcon = Utils.defineClass({
 
                 Clutter.cairo_set_source_color(cr, bodyColor);
                 cr.newSubPath();
-                cr.rectangle.apply(cr, [0, 0].concat(isHorizontalDots ? [solidLength, size] : [size, solidLength]));
+                cr.rectangle.apply(cr, [ 0, 0 ].concat(isHorizontalDots ? [ solidLength, size ] : [ size,
+                    solidLength
+                ]));
                 cr.fill();
                 Clutter.cairo_set_source_color(cr, blackenedColor);
                 cr.newSubPath();
-                cr.rectangle.apply(cr, isHorizontalDots ? [solidLength, 0, 1, size] : [0, solidLength, size, 1]);
+                cr.rectangle.apply(cr, isHorizontalDots ? [ solidLength, 0, 1, size ] : [ 0, solidLength, size,
+                    1
+                ]);
                 cr.fill();
                 Clutter.cairo_set_source_color(cr, darkenedColor);
                 cr.newSubPath();
-                cr.rectangle.apply(cr, isHorizontalDots ? [solidDarkLength, 0, darkenedLength, size] : [0, solidDarkLength, size, darkenedLength]);
+                cr.rectangle.apply(cr, isHorizontalDots ? [ solidDarkLength, 0, darkenedLength, size ] : [ 0,
+                    solidDarkLength, size, darkenedLength
+                ]);
                 cr.fill();
             }
         } else {
@@ -1155,9 +1228,11 @@ var taskbarAppIcon = Utils.defineClass({
             let draw;
             let drawDash = (i, dashLength) => {
                 dist = i * dashLength + i * spacing;
-                cr.rectangle.apply(cr, (isHorizontalDots ? [dist, 0, dashLength, size] : [0, dist, size, dashLength]));
+                cr.rectangle.apply(cr, (isHorizontalDots ? [ dist, 0, dashLength, size ] : [ 0, dist, size,
+                    dashLength
+                ]));
             };
-        
+
             switch (type) {
                 case DOT_STYLE.CILIORA:
                     spacing = size;
@@ -1165,11 +1240,15 @@ var taskbarAppIcon = Utils.defineClass({
                     translate = () => cr.translate(startX, startY);
                     preDraw = () => {
                         cr.newSubPath();
-                        cr.rectangle.apply(cr, [0, 0].concat(isHorizontalDots ? [length, size] : [size, length]));
+                        cr.rectangle.apply(cr, [ 0, 0 ].concat(isHorizontalDots ? [ length, size ] : [ size,
+                            length
+                        ]));
                     };
                     draw = i => {
                         dist = length + (i * spacing) + ((i - 1) * size);
-                        cr.rectangle.apply(cr, (isHorizontalDots ? [dist, 0] : [0, dist]).concat([size, size]));
+                        cr.rectangle.apply(cr, (isHorizontalDots ? [ dist, 0 ] : [ 0, dist ]).concat([ size,
+                            size
+                        ]));
                     };
                     break;
                 case DOT_STYLE.DOTS:
@@ -1177,29 +1256,39 @@ var taskbarAppIcon = Utils.defineClass({
 
                     translate = () => {
                         indicatorSize = Math.floor((areaSize - n * size - (n - 1) * spacing) / 2);
-                        cr.translate.apply(cr, isHorizontalDots ? [indicatorSize, startY] : [startX, indicatorSize]);
-                    }
+                        cr.translate.apply(cr, isHorizontalDots ? [ indicatorSize, startY ] : [ startX,
+                            indicatorSize
+                        ]);
+                    };
                     draw = i => {
                         dist = (2 * i + 1) * radius + i * spacing;
-                        cr.arc.apply(cr, (isHorizontalDots ? [dist, radius] : [radius, dist]).concat([radius, 0, 2 * Math.PI]));
+                        cr.arc.apply(cr, (isHorizontalDots ? [ dist, radius ] : [ radius, dist ]).concat([
+                            radius, 0, 2 * Math.PI
+                        ]));
                     };
                     break;
                 case DOT_STYLE.SQUARES:
                     translate = () => {
                         indicatorSize = Math.floor((areaSize - n * size - (n - 1) * spacing) / 2);
-                        cr.translate.apply(cr, isHorizontalDots ? [indicatorSize, startY] : [startX, indicatorSize]);
-                    }
+                        cr.translate.apply(cr, isHorizontalDots ? [ indicatorSize, startY ] : [ startX,
+                            indicatorSize
+                        ]);
+                    };
                     draw = i => {
                         dist = i * size + i * spacing;
-                        cr.rectangle.apply(cr, (isHorizontalDots ? [dist, 0] : [0, dist]).concat([size, size]));
+                        cr.rectangle.apply(cr, (isHorizontalDots ? [ dist, 0 ] : [ 0, dist ]).concat([ size,
+                            size
+                        ]));
                     };
                     break;
                 case DOT_STYLE.DASHES:
                     length = Math.floor(areaSize / 4) - spacing;
                     translate = () => {
                         indicatorSize = Math.floor((areaSize - n * length - (n - 1) * spacing) / 2);
-                        cr.translate.apply(cr, isHorizontalDots ? [indicatorSize, startY] : [startX, indicatorSize]);
-                    }
+                        cr.translate.apply(cr, isHorizontalDots ? [ indicatorSize, startY ] : [ startX,
+                            indicatorSize
+                        ]);
+                    };
                     draw = i => drawDash(i, length);
                     break;
                 case DOT_STYLE.SEGMENTED:
@@ -1219,15 +1308,16 @@ var taskbarAppIcon = Utils.defineClass({
             }
             cr.fill();
         }
-        
+
         cr.$dispose();
     },
 
-    _numberOverlay: function() {
+    _numberOverlay: function () {
         // Add label for a Hot-Key visual aid
         this._numberOverlayLabel = new St.Label({ style_class: 'badge' });
         this._numberOverlayBin = new St.Bin({
-            child: this._numberOverlayLabel, y: 2
+            child: this._numberOverlayLabel,
+            y: 2
         });
         this._numberOverlayLabel.add_style_class_name('number-overlay');
         this._numberOverlayOrder = -1;
@@ -1236,23 +1326,23 @@ var taskbarAppIcon = Utils.defineClass({
         this._dtpIconContainer.add_child(this._numberOverlayBin);
     },
 
-    updateHotkeyNumberOverlay: function() {
+    updateHotkeyNumberOverlay: function () {
         this.updateNumberOverlay(this._numberOverlayBin, true);
     },
 
-    updateNumberOverlay: function(bin, fixedSize) {
+    updateNumberOverlay: function (bin, fixedSize) {
         // We apply an overall scale factor that might come from a HiDPI monitor.
         // Clutter dimensions are in physical pixels, but CSS measures are in logical
         // pixels, so make sure to consider the scale.
         // Set the font size to something smaller than the whole icon so it is
         // still visible. The border radius is large to make the shape circular
-        let [minWidth, natWidth] = this._dtpIconContainer.get_preferred_width(-1);
-        let font_size =  Math.round(Math.max(12, 0.3 * natWidth) / Utils.getScaleFactor());
+        let [ minWidth, natWidth ] = this._dtpIconContainer.get_preferred_width(-1);
+        let font_size = Math.round(Math.max(12, 0.3 * natWidth) / Utils.getScaleFactor());
         let size = Math.round(font_size * 1.3);
         let label = bin.child;
         let style = 'font-size: ' + font_size + 'px;' +
-                    'border-radius: ' + this.icon.iconSize + 'px;' +
-                    'height: ' + size +'px;';
+            'border-radius: ' + this.icon.iconSize + 'px;' +
+            'height: ' + size + 'px;';
 
         if (fixedSize || label.get_text().length == 1) {
             style += 'width: ' + size + 'px;';
@@ -1264,48 +1354,48 @@ var taskbarAppIcon = Utils.defineClass({
         label.set_style(style);
     },
 
-    setNumberOverlay: function(number) {
+    setNumberOverlay: function (number) {
         this._numberOverlayOrder = number;
         this._numberOverlayLabel.set_text(number.toString());
     },
 
-    toggleNumberOverlay: function(activate) {
+    toggleNumberOverlay: function (activate) {
         if (activate && this._numberOverlayOrder > -1)
-           this._numberOverlayBin.show();
+            this._numberOverlayBin.show();
         else
-           this._numberOverlayBin.hide();
+            this._numberOverlayBin.hide();
     },
 
-    handleDragOver: function(source, actor, x, y, time) {
+    handleDragOver: function (source, actor, x, y, time) {
         if (source == Main.xdndHandler) {
             this._previewMenu.close(true);
         }
-            
+
         return DND.DragMotionResult.CONTINUE;
     },
 
     // Disable all DnD methods on gnome-shell 3.34
-    _onDragBegin: function() {},
-    _onDragEnd: function() {},
-    acceptDrop: function() { return false; },
+    _onDragBegin: function () {},
+    _onDragEnd: function () {},
+    acceptDrop: function () { return false; },
 
-    getAppIconInterestingWindows: function(isolateMonitors) {
+    getAppIconInterestingWindows: function (isolateMonitors) {
         return getInterestingWindows(this.app, this.dtpPanel.monitor, isolateMonitors);
     }
 });
 taskbarAppIcon.prototype.scaleAndFade = taskbarAppIcon.prototype.undoScaleAndFade = () => {};
 
-function minimizeWindow(app, param, monitor){
+function minimizeWindow(app, param, monitor) {
     // Param true make all app windows minimize
     let windows = getInterestingWindows(app, monitor);
     let current_workspace = Utils.DisplayWrapper.getWorkspaceManager().get_active_workspace();
     for (let i = 0; i < windows.length; i++) {
-        let w = windows[i];
-        if (w.get_workspace() == current_workspace && w.showing_on_its_workspace()){
+        let w = windows[ i ];
+        if (w.get_workspace() == current_workspace && w.showing_on_its_workspace()) {
             w.minimize();
             // Just minimize one window. By specification it should be the
             // focused window on the current workspace.
-            if(!param)
+            if (!param)
                 break;
         }
     }
@@ -1315,44 +1405,44 @@ function minimizeWindow(app, param, monitor){
  * By default only non minimized windows are activated.
  * This activates all windows in the current workspace.
  */
-function activateAllWindows(app, monitor){
+function activateAllWindows(app, monitor) {
 
     // First activate first window so workspace is switched if needed,
     // then activate all other app windows in the current workspace.
     let windows = getInterestingWindows(app, monitor);
-    let w = windows[0];
+    let w = windows[ 0 ];
     Main.activateWindow(w);
     let activeWorkspace = Utils.DisplayWrapper.getWorkspaceManager().get_active_workspace_index();
 
     if (windows.length <= 0)
         return;
 
-    for (let i = windows.length - 1; i >= 0; i--){
-        if (windows[i].get_workspace().index() == activeWorkspace){
-            Main.activateWindow(windows[i]);
+    for (let i = windows.length - 1; i >= 0; i--) {
+        if (windows[ i ].get_workspace().index() == activeWorkspace) {
+            Main.activateWindow(windows[ i ]);
         }
     }
 }
 
-function activateFirstWindow(app, monitor){
+function activateFirstWindow(app, monitor) {
 
     let windows = getInterestingWindows(app, monitor);
-    Main.activateWindow(windows[0]);
+    Main.activateWindow(windows[ 0 ]);
 }
 
 function cycleThroughWindows(app, reversed, shouldMinimize, monitor) {
     // Store for a little amount of time last clicked app and its windows
     // since the order changes upon window interaction
-    let MEMORY_TIME=3000;
+    let MEMORY_TIME = 3000;
 
     let app_windows = getInterestingWindows(app, monitor);
 
-    if(shouldMinimize)
+    if (shouldMinimize)
         app_windows.push("MINIMIZE");
 
     if (recentlyClickedAppLoopId > 0)
         Mainloop.source_remove(recentlyClickedAppLoopId);
-        
+
     recentlyClickedAppLoopId = Mainloop.timeout_add(MEMORY_TIME, resetRecentlyClickedApp);
 
     // If there isn't already a list of windows for the current app,
@@ -1374,19 +1464,19 @@ function cycleThroughWindows(app, reversed, shouldMinimize, monitor) {
         recentlyClickedAppIndex++;
     }
     let index = recentlyClickedAppIndex % recentlyClickedAppWindows.length;
-    
-    if(recentlyClickedAppWindows[index] === "MINIMIZE")
+
+    if (recentlyClickedAppWindows[ index ] === "MINIMIZE")
         minimizeWindow(app, true, monitor);
     else
-        Main.activateWindow(recentlyClickedAppWindows[index]);
+        Main.activateWindow(recentlyClickedAppWindows[ index ]);
 }
 
 function resetRecentlyClickedApp() {
     if (recentlyClickedAppLoopId > 0)
         Mainloop.source_remove(recentlyClickedAppLoopId);
 
-    recentlyClickedAppLoopId=0;
-    recentlyClickedApp =null;
+    recentlyClickedAppLoopId = 0;
+    recentlyClickedApp = null;
     recentlyClickedAppWindows = null;
     recentlyClickedAppIndex = 0;
     recentlyClickedAppMonitorIndex = null;
@@ -1397,29 +1487,31 @@ function resetRecentlyClickedApp() {
 function closeAllWindows(app, monitor) {
     let windows = getInterestingWindows(app, monitor);
     for (let i = 0; i < windows.length; i++)
-        windows[i].delete(global.get_current_time());
+        windows[ i ].delete(global.get_current_time());
 }
 
 // Filter out unnecessary windows, for instance
 // nautilus desktop window.
 function getInterestingWindows(app, monitor, isolateMonitors) {
-    let windows = app.get_windows().filter(function(w) {
+    let windows = app.get_windows().filter(function (w) {
         return !w.skip_taskbar;
     });
 
     // When using workspace or monitor isolation, we filter out windows
     // that are not in the current workspace or on the same monitor as the appicon
     if (Me.settings.get_boolean('isolate-workspaces'))
-        windows = windows.filter(function(w) {
-            return w.get_workspace().index() == Utils.DisplayWrapper.getWorkspaceManager().get_active_workspace_index();
+        windows = windows.filter(function (w) {
+            return w.get_workspace().index() == Utils.DisplayWrapper.getWorkspaceManager()
+                .get_active_workspace_index();
         });
 
-    if (monitor && Me.settings.get_boolean('multi-monitors') && (isolateMonitors || Me.settings.get_boolean('isolate-monitors'))) {
-        windows = windows.filter(function(w) {
+    if (monitor && Me.settings.get_boolean('multi-monitors') && (isolateMonitors || Me.settings.get_boolean(
+        'isolate-monitors'))) {
+        windows = windows.filter(function (w) {
             return w.get_monitor() == monitor.index;
         });
     }
-    
+
     return windows;
 }
 
@@ -1429,7 +1521,7 @@ function cssHexTocssRgba(cssHex, opacity) {
     var g = (bigint >> 8) & 255;
     var b = bigint & 255;
 
-    return 'rgba(' + [r, g, b].join(',') + ',' + opacity + ')';
+    return 'rgba(' + [ r, g, b ].join(',') + ',' + opacity + ')';
 }
 
 function getIconPadding(monitorIndex) {
@@ -1453,22 +1545,25 @@ function getIconPadding(monitorIndex) {
  *   (https://github.com/deuill/shell-extension-quitfromdash)
  */
 
- var taskbarSecondaryMenu = Utils.defineClass({
+var taskbarSecondaryMenu = Utils.defineClass({
     Name: 'DashToPanel.SecondaryMenu',
     Extends: AppDisplay.AppMenu,
-    ParentConstrParams: [[0], [1]],
+    ParentConstrParams: [
+        [ 0 ],
+        [ 1 ]
+    ],
 
-    _init: function(source, side) {
+    _init: function (source, side) {
         this.callParent('_init', source, side);
         // constructor parameter does nos work for some reason
         this._enableFavorites = true;
         this._showSingleWindows = true;
 
         // Remove "Show Details" menu item
-        if(!Me.settings.get_boolean('secondarymenu-contains-showdetails')) {
+        if (!Me.settings.get_boolean('secondarymenu-contains-showdetails')) {
             let existingMenuItems = this._getMenuItems();
             for (let i = 0; i < existingMenuItems.length; i++) {
-                let item = existingMenuItems[i];
+                let item = existingMenuItems[ i ];
                 if (item !== undefined && item.label !== undefined) {
                     if (item.label.text == "Show Details") {
                         this.box.remove_child(item.actor);
@@ -1479,23 +1574,23 @@ function getIconPadding(monitorIndex) {
     },
 
     // helper function for the quit windows abilities
-    _closeWindowInstance: function(metaWindow) {
+    _closeWindowInstance: function (metaWindow) {
         metaWindow.delete(global.get_current_time());
     }
 });
-taskbarSecondaryMenu.prototype['_updateWindowsSection'] = function() {
+taskbarSecondaryMenu.prototype[ '_updateWindowsSection' ] = function () {
     if (Me.settings.get_boolean('show-window-previews')) {
         this._windowSection.removeAll();
         this._openWindowsHeader.hide();
     } else {
         this.callParent('_updateWindowsSection');
     }
-}
+};
 
 /**
  * This function is used for extendDashItemContainer
  */
-function ItemShowLabel()  {
+function ItemShowLabel() {
     if (!this._labelText)
         return;
 
@@ -1503,10 +1598,10 @@ function ItemShowLabel()  {
     this.label.opacity = 0;
     this.label.show();
 
-    let [stageX, stageY] = this.get_transformed_position();
+    let [ stageX, stageY ] = this.get_transformed_position();
     let node = this.label.get_theme_node();
 
-    let itemWidth  = this.allocation.x2 - this.allocation.x1;
+    let itemWidth = this.allocation.x2 - this.allocation.x1;
     let itemHeight = this.allocation.y2 - this.allocation.y1;
 
     let labelWidth = this.label.get_width();
@@ -1520,22 +1615,22 @@ function ItemShowLabel()  {
         labelOffset += this._getIconAnimationOffset();
 
     let xOffset = Math.floor((itemWidth - labelWidth) / 2);
-    let x = stageX + xOffset
+    let x = stageX + xOffset;
     let y = stageY + (itemHeight - labelHeight) * .5;
 
-    switch(position) {
-      case St.Side.TOP:
-          y = stageY + labelOffset + itemHeight;
-          break;
-      case St.Side.BOTTOM:
-          y = stageY - labelHeight - labelOffset;
-          break;
-      case St.Side.LEFT:
-          x = stageX + labelOffset + itemWidth;
-          break;
-      case St.Side.RIGHT:
-          x = stageX - labelWidth - labelOffset;
-          break;
+    switch (position) {
+        case St.Side.TOP:
+            y = stageY + labelOffset + itemHeight;
+            break;
+        case St.Side.BOTTOM:
+            y = stageY - labelHeight - labelOffset;
+            break;
+        case St.Side.LEFT:
+            x = stageX + labelOffset + itemWidth;
+            break;
+        case St.Side.RIGHT:
+            x = stageX - labelWidth - labelOffset;
+            break;
     }
 
     // keep the label inside the screen border
@@ -1544,20 +1639,20 @@ function ItemShowLabel()  {
     // Leave a few pixel gap
     let gap = LABEL_GAP;
     let monitor = Main.layoutManager.findMonitorForActor(this);
-    if ( x - monitor.x < gap)
+    if (x - monitor.x < gap)
         x += monitor.x - x + labelOffset;
-    else if ( x + labelWidth > monitor.x + monitor.width - gap)
-        x -= x + labelWidth -( monitor.x + monitor.width) + gap;
+    else if (x + labelWidth > monitor.x + monitor.width - gap)
+        x -= x + labelWidth - (monitor.x + monitor.width) + gap;
 
     this.label.set_position(Math.round(x), Math.round(y));
 
-    let duration = Dash.DASH_ITEM_LABEL_SHOW_TIME; 
-    
+    let duration = Dash.DASH_ITEM_LABEL_SHOW_TIME;
+
     if (duration > 1) {
         duration /= 1000;
     }
-        
-    Utils.animate(this.label, { 
+
+    Utils.animate(this.label, {
         opacity: 255,
         time: duration,
         transition: 'easeOutQuad',
@@ -1579,11 +1674,14 @@ function ItemShowLabel()  {
 var ShowAppsIconWrapper = Utils.defineClass({
     Name: 'DashToPanel.ShowAppsIconWrapper',
 
-    _init: function(dtpPanel) {
+    _init: function (dtpPanel) {
         this.realShowAppsIcon = new Dash.ShowAppsIcon();
 
         Utils.wrapActor(this.realShowAppsIcon);
         Utils.wrapActor(this.realShowAppsIcon.toggleButton);
+
+        this._currentMenu = null;
+        this._appClassicMenu = null;
 
         /* the variable equivalent to toggleButton has a different name in the appIcon class
         (actor): duplicate reference to easily reuse appIcon methods */
@@ -1596,7 +1694,7 @@ var ShowAppsIconWrapper = Utils.defineClass({
         this._onKeyboardPopupMenu = AppDisplay.AppIcon.prototype._onKeyboardPopupMenu;
 
         // No action on clicked (showing of the appsview is controlled elsewhere)
-        this._onClicked = Lang.bind(this, function(actor, button) {
+        this._onClicked = Lang.bind(this, function (actor, button) {
             this._removeMenuTimeout();
         });
 
@@ -1615,14 +1713,20 @@ var ShowAppsIconWrapper = Utils.defineClass({
 
         let customIconPath = Me.settings.get_string('show-apps-icon-file');
 
-        this.realShowAppsIcon.icon.createIcon = function(size) {
-            this._iconActor = new St.Icon({ icon_name: 'view' + (Config.PACKAGE_VERSION < '3.20' ? '' : '-app') + '-grid-symbolic',
-                                            icon_size: size,
-                                            style_class: 'show-apps-icon',
-                                            track_hover: true });
+        this.realShowAppsIcon.icon.createIcon = function (size) {
+            this._iconActor = new St.Icon({
+                icon_name: 'view' + (Config.PACKAGE_VERSION < '3.20' ? '' : '-app') +
+                    '-grid-symbolic',
+                icon_size: size,
+                style_class: 'show-apps-icon',
+                track_hover: true
+            });
 
             if (customIconPath) {
-                this._iconActor.gicon = new Gio.FileIcon({ file: Gio.File.new_for_path(customIconPath) });
+                this._iconActor.gicon = new Gio.FileIcon({
+                    file: Gio.File.new_for_path(
+                        customIconPath)
+                });
             }
 
             return this._iconActor;
@@ -1633,50 +1737,59 @@ var ShowAppsIconWrapper = Utils.defineClass({
             this.realShowAppsIcon.icon._createIconTexture(this.realShowAppsIcon.icon.iconSize);
         });
 
-        this._changedAppIconPaddingId = Me.settings.connect('changed::appicon-padding', () => this.setShowAppsPadding());
-        this._changedAppIconSidePaddingId = Me.settings.connect('changed::show-apps-icon-side-padding', () => this.setShowAppsPadding());
-        
+        this._changedAppIconPaddingId = Me.settings.connect('changed::appicon-padding', () => this
+            .setShowAppsPadding());
+        this._changedAppIconSidePaddingId = Me.settings.connect('changed::show-apps-icon-side-padding',
+            () => this.setShowAppsPadding());
+
         this.setShowAppsPadding();
     },
-    
-    _onButtonPress: function(_actor, event) {
+
+    _onButtonPress: function (_actor, event) {
         let button = event.get_button();
         if (button == 1) {
             this._setPopupTimeout();
+            return Clutter.EVENT_PROPAGATE;
+
         } else if (button == 3) {
-            this.popupMenu();
+            this.popupMenu('apps');
+            return Clutter.EVENT_STOP;
+
+        } else if (button === 2) {
+            this.popupMenu('utilities');
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onLeaveEvent: function(_actor, _event) {
+    _onLeaveEvent: function (_actor, _event) {
         this.actor.fake_release();
         this._removeMenuTimeout();
     },
 
-    _onTouchEvent: function(actor, event) {
+    _onTouchEvent: function (actor, event) {
         if (event.type() == Clutter.EventType.TOUCH_BEGIN)
-        this._setPopupTimeout();
+            this._setPopupTimeout();
 
         return Clutter.EVENT_PROPAGATE;
     },
 
-    _onMenuPoppedDown: function() {
-        this._menu.sourceActor = this.actor;
+    _onMenuPoppedDown: function () {
+        this._currentMenu.sourceActor = this.actor;
         this.actor.sync_hover();
         this.emit('menu-state-changed', false);
     },
 
-    setShowAppsPadding: function() {
+    setShowAppsPadding: function () {
         let padding = getIconPadding(this.realShowAppsIcon._dtpPanel.monitor.index);
         let sidePadding = Me.settings.get_int('show-apps-icon-side-padding');
         let isVertical = this.realShowAppsIcon._dtpPanel.checkIfVertical();
 
-        this.actor.set_style('padding:' + (padding + (isVertical ? sidePadding : 0)) + 'px ' + (padding + (isVertical ? 0 : sidePadding)) + 'px;');
+        this.actor.set_style('padding:' + (padding + (isVertical ? sidePadding : 0)) + 'px ' + (padding + (
+            isVertical ? 0 : sidePadding)) + 'px;');
     },
 
-    createMenu: function() {
+    createMenu2: function () {
         if (!this._menu) {
             this._menu = new MyShowAppsIconMenu(this.realShowAppsIcon, this.realShowAppsIcon._dtpPanel);
             this._menu.connect('open-state-changed', (menu, isPoppedUp) => {
@@ -1698,27 +1811,75 @@ var ShowAppsIconWrapper = Utils.defineClass({
         }
     },
 
-    popupMenu: function(sourceActor = null) {
+    createMenu: function (type) {
+        let isNew = false;
+
+        if (type === 'apps') {
+            if (!this._appClassicMenu) {
+                this._appClassicMenu = new AppMenu.DashToPanelApplicationsMenu(this.actor);
+                // this.actor, 1.0, St.Side.TOP, this.actor);
+                isNew = true;
+
+                this._currentMenu = this._appClassicMenu;
+                this._menu = null;
+            }
+        } else if (type === 'utilities') {
+            if (!this._menu) {
+                this._menu = new MyShowAppsIconMenu(this.actor, this.realShowAppsIcon._dtpPanel);
+                isNew = true;
+            }
+
+            this._currentMenu = this._menu;
+            this._appClassicMenu = null;
+        }
+
+        if (isNew) {
+            this._currentMenu.connect('open-state-changed', Lang.bind(this, function (menu, isPoppedUp) {
+                if (!isPoppedUp)
+                    this._onMenuPoppedDown();
+            }));
+
+            let id = Main.overview.connect('hiding', Lang.bind(this, function () {
+                this._currentMenu.close();
+            }));
+
+            this._currentMenu.actor.connect('destroy', function () {
+                Main.overview.disconnect(id);
+            });
+
+            // We want to keep the item hovered while the menu is up
+            this._currentMenu.blockSourceEvents = true;
+
+            Main.uiGroup.add_actor(this._currentMenu.actor);
+            this._menuManager.addMenu(this._currentMenu);
+        }
+
+        return this._currentMenu;
+    },
+
+    popupMenu: function (type, sourceActor = null) {
         this._removeMenuTimeout();
         this.actor.fake_release();
-        this.createMenu();
+        const menu = this.createMenu(type);
 
-        this._menu.updateItems(sourceActor == null ? this.realShowAppsIcon : sourceActor);
+        if (type === 'utilities')
+            menu.updateItems(sourceActor == null ? this.realShowAppsIcon : sourceActor);
 
         this.actor.set_hover(true);
-        this._menu.open(BoxPointer.PopupAnimation.FULL);
+        // BEFORE menu.popup();
+        menu.open(BoxPointer.PopupAnimation.FULL);
         this._menuManager.ignoreRelease();
         this.emit('sync-tooltip');
 
         return false;
     },
 
-    shouldShowTooltip: function() {
-        return Me.settings.get_boolean('show-tooltip') && 
-               (this.actor.hover && (!this._menu || !this._menu.isOpen));
+    shouldShowTooltip: function () {
+        return Me.settings.get_boolean('show-tooltip') &&
+            (this.actor.hover && (!this._currentMenu || !this._currentMenu.isOpen));
     },
 
-    destroy: function() {
+    destroy: function () {
         Me.settings.disconnect(this._changedShowAppsIconId);
         Me.settings.disconnect(this._changedAppIconSidePaddingId);
         Me.settings.disconnect(this._changedAppIconPaddingId);
@@ -1737,7 +1898,6 @@ var MyShowAppsIconMenu = class extends PopupMenu.PopupMenu {
         super(actor, 0, dtpPanel.getPosition());
 
         this._dtpPanel = dtpPanel;
-
         this.updateItems(actor);
     }
 
@@ -1749,88 +1909,93 @@ var MyShowAppsIconMenu = class extends PopupMenu.PopupMenu {
         if (this.sourceActor != Main.layoutManager.dummyCursor) {
             this._appendItem({
                 title: 'Power options',
-                cmd: ['gnome-control-center', 'power']
+                cmd: [ 'gnome-control-center', 'power' ]
             });
 
             this._appendItem({
                 title: 'Event logs',
-                cmd: ['gnome-logs']
+                cmd: [ 'gnome-logs' ]
             });
 
             this._appendItem({
                 title: 'System',
-                cmd: ['gnome-control-center', 'info-overview']
+                cmd: [ 'gnome-control-center', 'info-overview' ],
+                hint: 'about'
             });
 
             this._appendItem({
                 title: 'Device Management',
-                cmd: ['gnome-control-center', 'display']
+                cmd: [ 'gnome-control-center', 'display' ]
             });
 
             this._appendItem({
                 title: 'Disk Management',
-                cmd: ['gnome-disks']
+                cmd: [ 'gnome-disks' ],
+                hint: 'diskutility'
             });
 
             this._appendList(
                 Me.settings.get_strv('show-apps-button-context-menu-commands'),
                 Me.settings.get_strv('show-apps-button-context-menu-titles')
-            )
+            );
 
             this._appendSeparator();
         }
 
         this._appendItem({
             title: 'Terminal',
-            cmd: ['gnome-terminal']
+            cmd: [ 'gnome-terminal' ]
         });
 
         this._appendItem({
             title: 'System monitor',
-            cmd: ['gnome-system-monitor']
+            cmd: [ 'gnome-system-monitor' ]
         });
 
         this._appendItem({
             title: 'Files',
-            cmd: ['nautilus']
+            cmd: [ 'nautilus' ]
         });
 
         this._appendItem({
             title: 'Extensions',
-            cmd: ['gnome-shell-extension-prefs']
+            cmd: [ 'gnome-shell-extension-prefs' ],
+            hint: 'extensions'
         });
 
         this._appendItem({
             title: 'Settings',
-            cmd: ['gnome-control-center', 'wifi']
+            cmd: [ 'gnome-control-center', 'wifi' ]
         });
 
         this._appendList(
             Me.settings.get_strv('panel-context-menu-commands'),
             Me.settings.get_strv('panel-context-menu-titles')
-        )
+        );
 
         this._appendSeparator();
 
-        let lockTaskbarMenuItem = this._appendMenuItem(Me.settings.get_boolean('taskbar-locked') ? _('Unlock taskbar') : _('Lock taskbar'));
+        let lockTaskbarMenuItem = this._appendMenuItem(Me.settings.get_boolean('taskbar-locked') ? _(
+            'Unlock taskbar') : _('Lock taskbar'));
         lockTaskbarMenuItem.connect('activate', () => {
             Me.settings.set_boolean('taskbar-locked', !Me.settings.get_boolean('taskbar-locked'));
         });
 
         let settingsMenuItem = this._appendMenuItem(_('Dash to Panel Settings'));
         settingsMenuItem.connect('activate', function () {
-            let command = ["gnome-shell-extension-prefs"];
+            let command = [ "gnome-shell-extension-prefs" ];
 
             if (Config.PACKAGE_VERSION > '3.36') {
-                command = ["gnome-extensions", "prefs"];
+                command = [ "gnome-extensions", "prefs" ];
             }
 
-            Util.spawn(command.concat([Me.metadata.uuid]));
+            Util.spawn(command.concat([ Me.metadata.uuid ]));
         });
 
-        if(this.sourceActor == Main.layoutManager.dummyCursor) {
+        if (this.sourceActor == Main.layoutManager.dummyCursor) {
             this._appendSeparator();
-            let item = this._appendMenuItem(this._dtpPanel._restoreWindowList ? _('Restore Windows') : _('Show Desktop'));
+            let item = this._appendMenuItem(this._dtpPanel._restoreWindowList ? _('Restore Windows') : _(
+                'Show Desktop'));
             item.connect('activate', Lang.bind(this._dtpPanel, this._dtpPanel._onShowDesktopButtonPress));
         }
     }
@@ -1838,10 +2003,11 @@ var MyShowAppsIconMenu = class extends PopupMenu.PopupMenu {
 
     // Only add menu entries for commands that exist in path
     _appendItem(info) {
-        if (Utils.checkIfCommandExists(info.cmd[0])) {
-            let item = this._appendMenuItem(_(info.title));
+        log('_appendItem  =>  ' + info.cmd[ 0 ]);
+        if (Utils.checkIfCommandExists(info.cmd[ 0 ])) {
+            let item = this._appendMenuItem(_(info.title), info);
 
-            item.connect('activate', function() {
+            item.connect('activate', function () {
                 print("activated: " + info.title);
                 Util.spawn(info.cmd);
             });
@@ -1850,16 +2016,16 @@ var MyShowAppsIconMenu = class extends PopupMenu.PopupMenu {
 
         return null;
     }
-    
+
     _appendList(commandList, titleList) {
         if (commandList.length != titleList.length) {
             return;
         }
-        
+
         for (var entry = 0; entry < commandList.length; entry++) {
             _appendItem({
-                title: titleList[entry],
-                cmd: commandList[entry].split(' ')
+                title: titleList[ entry ],
+                cmd: commandList[ entry ].split(' ')
             });
         }
     }
@@ -1869,16 +2035,98 @@ var MyShowAppsIconMenu = class extends PopupMenu.PopupMenu {
         this.addMenuItem(separator);
     }
 
-    _appendMenuItem(labelText) {
-        // FIXME: app-well-menu-item style
-        let item = new PopupMenu.PopupMenuItem(labelText);
+
+    _appendMenuItem(labelText, info = {}) {
+
+        const { cmd: command, hint } = info;
+
+        const shellApp = appDesktopId => {
+            const appInfo = Gio.DesktopAppInfo.new(appDesktopId);
+            return appInfo && new Shell.App({ app_info: appInfo });
+        };
+
+        const getShellApp = () => {
+            if (!command)
+                return undefined;
+
+            const fullCommand = command.join(' ');
+
+            const ids = Shell.AppSystem.search(fullCommand).flat().map(id => ({
+                id,
+                name: id.replace(/\.desktop$/, '').toLowerCase()
+            }));
+
+            if (ids.length === 1)
+                return shellApp(ids[ 0 ].id);
+
+            const filteredIds = ids.filter(({ name }) => {
+                return false ||
+                    name === fullCommand ||
+                    name.split('.').includes(fullCommand) ||
+                    command.length > 1 && name.includes(fullCommand.slice(-1)[ 0 ]);
+            });
+
+            if (filteredIds.length === 1)
+                return shellApp(filteredIds[ 0 ].id);
+
+            if (hint) {
+                const filteredIds = ids.filter(({ name }) => {
+                    return name.split('.').includes(hint);
+                });
+
+                if (filteredIds.length === 1)
+                    return shellApp(filteredIds[ 0 ].id);
+            }
+
+
+            const apps = appSys.get_installed().filter(app => {
+                const id = app.get_id().replace(/\.desktop$/, '').toLowerCase();
+                const name = app.get_name().toLowerCase();
+                const iconName = app.get_icon()?.to_string()?.toLowerCase() ?? '';
+
+                log('hint <> name  ' + hint + ' , ' + name);
+
+                if (hint && hint === name)
+                    return true;
+
+                const found = [ id, name, iconName ].find(n => n.includes(fullCommand));
+
+                if (found)
+                    return true;
+            });
+
+            if (apps.length > 1)
+                log(`MyShowAppsIconMenu: few icons available for the command "${fullCommand}". First one have been chosen`);
+
+            return apps[ 0 ];
+        };
+
+
+        const getMenuItem = () => {
+            const app = getShellApp();
+
+            if (app) {
+                const icon = app.get_icon();
+                return new PopupMenu.PopupImageMenuItem(labelText, icon);
+
+                // const icon = app.get_icon() || app.create_icon_texture(32);
+                // const icon = app.get_icon() || app.create_icon_texture(32);
+            }
+
+            // FIXME: app-well-menu-item style
+            return new PopupMenu.PopupMenuItem(labelText);
+        };
+
+
+        const item = getMenuItem();
         this.addMenuItem(item);
+
         return item;
     }
 };
 
 
-var getIconContainerStyle = function(isVertical) {
+var getIconContainerStyle = function (isVertical) {
     let style = 'padding: ';
 
     if (Me.settings.get_boolean('group-apps')) {
@@ -1888,4 +2136,4 @@ var getIconContainerStyle = function(isVertical) {
     }
 
     return style;
-}
+};

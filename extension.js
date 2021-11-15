@@ -1,6 +1,6 @@
 /*
  * Dash-To-Panel extension for Gnome 3
- * Copyright 2016 Jason DeRose (jderose9) and Charles Gagnon (charlesg99)
+ * Copyright 2021 Thomas Milotti (@milottit)
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

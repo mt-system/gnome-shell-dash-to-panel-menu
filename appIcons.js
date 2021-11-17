@@ -2105,13 +2105,109 @@ var MyShowAppsIconMenu = Utils.defineClass({
             let item = this._appendMenuItem(this._source._dtpPanel._restoreWindowList ? _('Restore Windows') : _('Show Desktop'));
             item.connect('activate', Lang.bind(this._source._dtpPanel, this._source._dtpPanel._onShowDesktopButtonPress));
         }
+    },
+
+    _appendSeparator() {
+        let separator = new PopupMenu.PopupSeparatorMenuItem();
+        this.addMenuItem(separator);
+    },
+
+
+    _appendMenuItem(labelText, info = {}) {
+
+        const { cmd: command, hint } = info;
+
+        const shellApp = appDesktopId => {
+            const appInfo = Gio.DesktopAppInfo.new(appDesktopId);
+            return appInfo && new Shell.App({ app_info: appInfo });
+        };
+
+        const getShellApp = () => {
+            if (!command)
+                return undefined;
+
+            const fullCommand = command.join(' ');
+
+            const ids = Shell.AppSystem.search(fullCommand).flat().map(id => ({
+                id,
+                name: id.replace(/\.desktop$/, '').toLowerCase()
+            }));
+
+            if (ids.length === 1)
+                return shellApp(ids[ 0 ].id);
+
+            const filteredIds = ids.filter(({ name }) => {
+                return false ||
+                    name === fullCommand ||
+                    name.split('.').includes(fullCommand) ||
+                    command.length > 1 && name.includes(fullCommand.slice(-1)[ 0 ]);
+            });
+
+            if (filteredIds.length === 1)
+                return shellApp(filteredIds[ 0 ].id);
+
+            if (hint) {
+                const filteredIds = ids.filter(({ name }) => {
+                    return name.split('.').includes(hint);
+                });
+
+                if (filteredIds.length === 1)
+                    return shellApp(filteredIds[ 0 ].id);
+            }
+
+
+            const apps = appSys.get_installed().filter(app => {
+                const id = app.get_id().replace(/\.desktop$/, '').toLowerCase();
+                const name = app.get_name().toLowerCase();
+                const iconName = app.get_icon()?.to_string()?.toLowerCase() ?? '';
+
+                log('hint <> name  ' + hint + ' , ' + name);
+
+                if (hint && hint === name)
+                    return true;
+
+                const found = [ id, name, iconName ].find(n => n.includes(fullCommand));
+
+                if (found)
+                    return true;
+            });
+
+            if (apps.length > 1)
+                log(`MyShowAppsIconMenu: few icons available for the command "${fullCommand}". First one have been chosen`);
+
+            return apps[ 0 ];
+        };
+
+
+        const getMenuItem = () => {
+            const app = getShellApp();
+
+            if (app) {
+                const icon = app.get_icon();
+                return new PopupMenu.PopupImageMenuItem(labelText, icon);
+
+                // const icon = app.get_icon() || app.create_icon_texture(32);
+            }
+
+            // FIXME: app-well-menu-item style
+            return new PopupMenu.PopupMenuItem(labelText);
+        };
+
+
+        const item = getMenuItem();
+        this.addMenuItem(item);
+
+        return item;
     }
 });
 adjustMenuRedisplay(MyShowAppsIconMenu.prototype);
 
+
 function adjustMenuRedisplay(menuProto) {
     menuProto[ menuRedisplayFunc ] = function () { this._dtpRedisplay(menuRedisplayFunc); };
 }
+
+
 
 var getIconContainerStyle = function (isVertical) {
     let style = 'padding: ';

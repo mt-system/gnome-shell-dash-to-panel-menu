@@ -2110,7 +2110,6 @@ var MyShowAppsIconMenu = class extends PopupMenu.PopupMenu {
                 return new PopupMenu.PopupImageMenuItem(labelText, icon);
 
                 // const icon = app.get_icon() || app.create_icon_texture(32);
-                // const icon = app.get_icon() || app.create_icon_texture(32);
             }
 
             // FIXME: app-well-menu-item style

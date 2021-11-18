@@ -1772,6 +1772,9 @@ var ShowAppsIconWrapper = Utils.defineClass({
 
         this._currentMenu = null;
         this._appClassicMenu = null;
+        this._menuUsefulShortcuts = null;
+        this.menuId = null;
+        this.sourceActor = null;
 
         /* the variable equivalent to toggleButton has a different name in the appIcon class
         (actor): duplicate reference to easily reuse appIcon methods */
@@ -1794,7 +1797,6 @@ var ShowAppsIconWrapper = Utils.defineClass({
         this.actor.connect('clicked', Lang.bind(this, this._onClicked));
         this.actor.connect('popup-menu', Lang.bind(this, this._onKeyboardPopupMenu));
 
-        this._menu = null;
         this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
         this._menuTimeoutId = 0;
 
@@ -1836,17 +1838,21 @@ var ShowAppsIconWrapper = Utils.defineClass({
     },
 
     _onButtonPress: function (_actor, event) {
+        return this.onButtonPress(this.actor, event);
+    },
+
+    onButtonPress: function (actor, event) {
         let button = event.get_button();
         if (button == 1) {
             this._setPopupTimeout();
             return Clutter.EVENT_PROPAGATE;
 
         } else if (button == 3) {
-            this.popupMenu('apps');
+            this.popupMenu('apps', actor);
             return Clutter.EVENT_STOP;
 
         } else if (button === 2) {
-            this.popupMenu('utilities');
+            this.popupMenu('utilities', actor);
             return Clutter.EVENT_STOP;
         }
         return Clutter.EVENT_PROPAGATE;
@@ -1879,76 +1885,68 @@ var ShowAppsIconWrapper = Utils.defineClass({
             isVertical ? 0 : sidePadding)) + 'px;');
     },
 
-    createMenu2: function () {
-        if (!this._menu) {
-            this._menu = new MyShowAppsIconMenu(this.actor, this.realShowAppsIcon._dtpPanel);
-            this._menu.connect('open-state-changed', Lang.bind(this, function (menu, isPoppedUp) {
+
+    createMenu: function (type, isNewSourceActor) {
+
+        const onDestroyMenu = () => this.menuId && Main.overview.disconnect(this.menuId);
+        const hideMenu = () => this._currentMenu?.close();
+
+        const initMenu = () => {
+            this._currentMenu.connect('open-state-changed', (menu, isPoppedUp) => {
                 if (!isPoppedUp)
                     this._onMenuPoppedDown();
-            }));
-            let id = Main.overview.connect('hiding', Lang.bind(this, function () {
-                this._menu.close();
-            }));
-            this._menu.actor.connect('destroy', function () {
-                Main.overview.disconnect(id);
             });
-            this._menuManager.addMenu(this._menu);
-        }
-    },
 
-    createMenu: function (type) {
-        let isNew = false;
-
-        if (type === 'apps') {
-            if (!this._appClassicMenu) {
-                this._appClassicMenu = new AppMenu.DashToPanelApplicationsMenu(this.actor);
-                // this.actor, 1.0, St.Side.TOP, this.actor);
-                isNew = true;
-
-                this._currentMenu = this._appClassicMenu;
-                this._menu = null;
-            }
-        } else if (type === 'utilities') {
-            if (!this._menu) {
-                this._menu = new MyShowAppsIconMenu(this.actor, this.realShowAppsIcon._dtpPanel);
-                isNew = true;
-            }
-
-            this._currentMenu = this._menu;
-            this._appClassicMenu = null;
-        }
-
-        if (isNew) {
-            this._currentMenu.connect('open-state-changed', Lang.bind(this, function (menu, isPoppedUp) {
-                if (!isPoppedUp)
-                    this._onMenuPoppedDown();
-            }));
-
-            let id = Main.overview.connect('hiding', Lang.bind(this, function () {
-                this._currentMenu.close();
-            }));
-
-            this._currentMenu.actor.connect('destroy', function () {
-                Main.overview.disconnect(id);
-            });
+            this.menuId = Main.overview.connect('hiding', hideMenu);
+            this._currentMenu.actor.connect('destroy', onDestroyMenu);
 
             // We want to keep the item hovered while the menu is up
             this._currentMenu.blockSourceEvents = true;
 
             Main.uiGroup.add_actor(this._currentMenu.actor);
             this._menuManager.addMenu(this._currentMenu);
+        };
+
+        if (isNewSourceActor) {
+            hideMenu();
+            onDestroyMenu();
+            this._currentMenu.destroy();
+            this._appClassicMenu = null;
+            this._menuUsefulShortcuts = null;
         }
+
+        if (type === 'apps' && !this._appClassicMenu) {
+
+            this._appClassicMenu = new AppMenu.DashToPanelApplicationsMenu(this.sourceActor, this.realShowAppsIcon._dtpPanel);
+
+            this._currentMenu = this._appClassicMenu;
+            this._menuUsefulShortcuts = null;
+            initMenu();
+
+        } else if (type === 'utilities' && !this._menuUsefulShortcuts) {
+
+            this._menuUsefulShortcuts = new MyShowAppsIconMenu(this.actor, this.realShowAppsIcon._dtpPanel);
+            this._menuUsefulShortcuts.updateItems(this.sourceActor);
+
+            this._currentMenu = this._menuUsefulShortcuts;
+            this._appClassicMenu = null;
+            initMenu();
+        }
+
+
 
         return this._currentMenu;
     },
 
-    popupMenu: function (type, sourceActor = null) {
+    popupMenu: function (type, sourceActor) {
         this._removeMenuTimeout();
         this.actor.fake_release();
-        const menu = this.createMenu(type);
 
-        if (type === 'utilities')
-            menu.updateItems(sourceActor == null ? this.realShowAppsIcon : sourceActor);
+        const isNewSourceActor = this.sourceActor !== sourceActor;
+        this.sourceActor = sourceActor;
+
+        const menu = this.createMenu(type, isNewSourceActor);
+        menu.sourceActor = sourceActor;
 
         this.actor.set_hover(true);
         // BEFORE menu.popup();
@@ -2160,8 +2158,6 @@ var MyShowAppsIconMenu = Utils.defineClass({
                 const id = app.get_id().replace(/\.desktop$/, '').toLowerCase();
                 const name = app.get_name().toLowerCase();
                 const iconName = app.get_icon()?.to_string()?.toLowerCase() ?? '';
-
-                log('hint <> name  ' + hint + ' , ' + name);
 
                 if (hint && hint === name)
                     return true;

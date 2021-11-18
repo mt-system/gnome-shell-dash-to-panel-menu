@@ -117,7 +117,7 @@ How do I move the notifications to somewhere other than the top center? [Panel O
 
 How do I display Minimize & Maximize buttons? In the Tweak Tool application, turn on `Windows > Titlebar Buttons > Minimize & Maximize`.
 
-How do I reset the extension to its default settings? `dconf reset -f /org/gnome/shell/extensions/dash-to-panel-menu/`.
+How do I reset the extension to its default settings? `dconf reset -f /org.gnome.shell.extensions.dash-to-panel-menu-menu/`.
 
 ## 
 ### Themes

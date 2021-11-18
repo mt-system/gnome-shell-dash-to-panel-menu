@@ -369,15 +369,15 @@ Signals.addSignalMethods(DesktopTarget.prototype);
 // to inject it in the Dash to Panel extensions :)))
 
 class Menu extends PopupMenu.PopupMenu {
-    constructor(source) {
+    constructor(source, dtpPanel) {
 
-        let side = St.Side.LEFT;
+        /* let side = St.Side.LEFT;
 
         if (Clutter.get_default_text_direction() === Clutter.TextDirection.RTL)
-            side = St.Side.RIGHT;
+            side = St.Side.RIGHT; */
 
         // sourceActor, arrowAlignment, arrowSide
-        super(source, 1.0, side);
+        super(source, 1.0, dtpPanel.getPosition()); // side
         // We want to keep the item hovered while the menu is up
         this.blockSourceEvents = true;
 

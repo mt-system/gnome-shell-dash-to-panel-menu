@@ -21,7 +21,7 @@
  * Some code was also adapted from the upstream Gnome Shell source code.
  */
 
-#dashtopanelTaskbar .dash-item-container > StWidget {
+#dashtopanelTaskbar .dash-item-container>StWidget {
     margin: 0;
     padding: 0;
 }
@@ -84,9 +84,9 @@
     margin: 0;
 }
 
-.dashtopanelMainPanel.vertical .panel-button > *,
-.dashtopanelMainPanel.vertical .panel-button.vertical > *,
-.dashtopanelMainPanel.vertical .panel-button.clock-display > * {
+.dashtopanelMainPanel.vertical .panel-button>*,
+.dashtopanelMainPanel.vertical .panel-button.vertical>*,
+.dashtopanelMainPanel.vertical .panel-button.clock-display>* {
     padding: 8px 0;
 }
 
@@ -144,8 +144,16 @@
 }
 
 #dashtopanelScrollview .notification-badge {
-    background-color: rgba(255, 0, 0, 0.8);
+    background-color: rgba(36, 160, 154, 0.8);
+    font-size: 10px;
 }
+
+#dashtopanelScrollview .notification-badge first-child :last-child {
+    font-size: 10px;
+    border-radius: 33px;
+    padding: 0 2px;
+}
+
 
 #dashtopanelScrollview .progress-bar {
     /* Customization of the progress bar style, e.g.:

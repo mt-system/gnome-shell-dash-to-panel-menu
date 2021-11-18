@@ -38,7 +38,7 @@ clean:
 
 extension: ./schemas/gschemas.compiled $(MSGSRC:.po=.mo)
 
-./schemas/gschemas.compiled: ./schemas/org.gnome.shell.extensions.dash-to-panel.gschema.xml
+./schemas/gschemas.compiled: ./schemas/org.gnome.shell.extensions.dash-to-panel-menu.gschema.xml
 	glib-compile-schemas ./schemas/
 
 potfile: ./po/dash-to-panel.pot

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="gnome-shell-extensions">
-  <enum id='org.gnome.shell.extensions.dash-to-panel.dotStyle'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.dotStyle'>
     <value value='0' nick='DOTS'/>
     <value value='1' nick='SQUARES'/>
     <value value='2' nick='DASHES'/>
@@ -9,7 +9,7 @@
     <value value='5' nick='CILIORA'/>
     <value value='6' nick='METRO'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.clickAction'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.clickAction'>
     <value value='0' nick='RAISE'/>
     <value value='1' nick='MINIMIZE'/>
     <value value='2' nick='LAUNCH'/>
@@ -19,52 +19,52 @@
     <value value='6' nick='TOGGLE-SHOWPREVIEW'/>
     <value value='7' nick='TOGGLE-CYCLE'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.scrollAction'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.scrollAction'>
     <value value='0' nick='NOTHING'/>
     <value value='1' nick='SWITCH_WORKSPACE'/>
     <value value='2' nick='CYCLE_WINDOWS'/>
     <value value='3' nick='PASS_THROUGH'/>
     <value value='4' nick='CHANGE_VOLUME'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.hotkeyPrefix'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.hotkeyPrefix'>
     <value value='0' nick='Super'/>
     <value value='1' nick='SuperAlt'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.hotkeyOverlay'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.hotkeyOverlay'>
     <value value='0' nick='NEVER'/>
     <value value='1' nick='TEMPORARILY'/>
     <value value='2' nick='ALWAYS'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.position'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.position'>
     <value value='0' nick='BOTTOM'/>
     <value value='1' nick='TOP'/>
     <value value='2' nick='LEFT'/>
     <value value='3' nick='RIGHT'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.proximityBehavior'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.proximityBehavior'>
     <value value='0' nick='ALL_WINDOWS'/>
     <value value='1' nick='FOCUSED_WINDOWS'/>
     <value value='2' nick='MAXIMIZED_WINDOWS'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.fontWeight'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.fontWeight'>
     <value value='0' nick='inherit'/>
     <value value='1' nick='normal'/>
     <value value='2' nick='lighter'/>
     <value value='3' nick='bold'/>
     <value value='4' nick='bolder'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.hotkeyNumberKeys'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.hotkeyNumberKeys'>
     <value value='0' nick='NUM_ROW'/>
     <value value='1' nick='NUM_KEYPAD'/>
     <value value='2' nick='BOTH'/>
   </enum>
-  <enum id='org.gnome.shell.extensions.dash-to-panel.appIconHoverAnimationType'>
+  <enum id='org.gnome.shell.extensions.dash-to-panel-menu.appIconHoverAnimationType'>
     <value value='0' nick='SIMPLE'/>
     <value value='1' nick='RIPPLE'/>
     <value value='2' nick='PLANK'/>
   </enum>
-  <schema path="/org/gnome/shell/extensions/dash-to-panel/" id="org.gnome.shell.extensions.dash-to-panel">
-    <key name="panel-position" enum="org.gnome.shell.extensions.dash-to-panel.position">
+  <schema path="/org.gnome.shell.extensions.dash-to-panel-menu/" id="org.gnome.shell.extensions.dash-to-panel-menu">
+    <key name="panel-position" enum="org.gnome.shell.extensions.dash-to-panel-menu.position">
       <default>'BOTTOM'</default>
       <summary>Panel position (Deprecated)</summary>
       <description>Panel is shown on the Bottom or Top of the screen.</description>
@@ -114,17 +114,17 @@
       <summary>Custom Show Desktop line color</summary>
       <description>Custom Show Desktop button line color</description>
     </key>
-    <key name="dot-position" enum="org.gnome.shell.extensions.dash-to-panel.position">
+    <key name="dot-position" enum="org.gnome.shell.extensions.dash-to-panel-menu.position">
       <default>'BOTTOM'</default>
       <summary>Dot position</summary>
       <description>Running indicators are shown on the Bottom or Top of the screen.</description>
     </key>
-    <key name="dot-style-focused" enum="org.gnome.shell.extensions.dash-to-panel.dotStyle">
+    <key name="dot-style-focused" enum="org.gnome.shell.extensions.dash-to-panel-menu.dotStyle">
       <default>'METRO'</default>
       <summary>Style of the running indicator (focused)</summary>
       <description>Style of the running indicator for the icon for the currently focused application</description>
     </key>
-    <key name="dot-style-unfocused" enum="org.gnome.shell.extensions.dash-to-panel.dotStyle">
+    <key name="dot-style-unfocused" enum="org.gnome.shell.extensions.dash-to-panel-menu.dotStyle">
       <default>'METRO'</default>
       <summary>Style of the running indicator (unfocused)</summary>
       <description>Style of the running indicator for the icon for applications which are not currently focused</description>
@@ -259,7 +259,7 @@
       <summary>Panel opacity</summary>
       <description>Custom opacity for the panel</description>
     </key>
-    <key name="trans-dynamic-behavior" enum="org.gnome.shell.extensions.dash-to-panel.proximityBehavior">
+    <key name="trans-dynamic-behavior" enum="org.gnome.shell.extensions.dash-to-panel-menu.proximityBehavior">
       <default>'ALL_WINDOWS'</default>
       <summary>Dynamic opacity behavior</summary>
       <description>Dictates which window type affects the panel opacity</description>
@@ -314,7 +314,7 @@
       <summary>Only hide from windows</summary>
       <description>Dictates if the dash should only hide when in conflict with windows</description>
     </key>
-    <key name="intellihide-behaviour" enum="org.gnome.shell.extensions.dash-to-panel.proximityBehavior">
+    <key name="intellihide-behaviour" enum="org.gnome.shell.extensions.dash-to-panel-menu.proximityBehavior">
       <default>'FOCUSED_WINDOWS'</default>
       <summary>Intellihide behaviour</summary>
       <description>Dictates how to intelligently hide the panel</description>
@@ -385,24 +385,24 @@
       <description>Override the escape key to return to the desktop when entering the overview using the Show Applications button</description>
     </key>
     <key type="as" name="show-apps-button-context-menu-commands">
-     <default>[]</default>
-     <summary>Show Apps button context menu commands</summary>
-     <description>Commands to add to the Show Apps button right click menu</description>
+      <default>[]</default>
+      <summary>Show Apps button context menu commands</summary>
+      <description>Commands to add to the Show Apps button right click menu</description>
     </key>
     <key type="as" name="show-apps-button-context-menu-titles">
-     <default>[]</default>
-     <summary>Show Apps button context menu titles</summary>
-     <description>Titles for commands added to Show Apps button right click menu</description>
+      <default>[]</default>
+      <summary>Show Apps button context menu titles</summary>
+      <description>Titles for commands added to Show Apps button right click menu</description>
     </key>
     <key type="as" name="panel-context-menu-commands">
-     <default>[]</default>
-     <summary>Panel context menu commands</summary>
-     <description>Commands to add to the panel right click menu</description>
+      <default>[]</default>
+      <summary>Panel context menu commands</summary>
+      <description>Commands to add to the panel right click menu</description>
     </key>
     <key type="as" name="panel-context-menu-titles">
-     <default>[]</default>
-     <summary>Panel context menu titles</summary>
-     <description>Titles for commands added to panel right click menu</description>
+      <default>[]</default>
+      <summary>Panel context menu titles</summary>
+      <description>Titles for commands added to panel right click menu</description>
     </key>
     <key type="b" name="show-activities-button">
       <default>false</default>
@@ -474,7 +474,7 @@
       <summary>Window previews manual styling</summary>
       <description>This defines if the default window previews styling should be applied</description>
     </key>
-    <key name="window-preview-title-position" enum="org.gnome.shell.extensions.dash-to-panel.position">
+    <key name="window-preview-title-position" enum="org.gnome.shell.extensions.dash-to-panel-menu.position">
       <default>'TOP'</default>
       <summary>Title position</summary>
       <description>Position of the window title, close button and icon in preview.</description>
@@ -504,7 +504,7 @@
       <summary>Window previews animation time</summary>
       <description>This defines the window previews animation time.</description>
     </key>
-    <key name="window-preview-title-font-weight" enum="org.gnome.shell.extensions.dash-to-panel.fontWeight">
+    <key name="window-preview-title-font-weight" enum="org.gnome.shell.extensions.dash-to-panel-menu.fontWeight">
       <default>'inherit'</default>
       <summary>Font weight of window preview titles</summary>
       <description>This defines the font weight of window preview titles. Supported values: inherit (from theme), normal, lighter, bold and bolder.</description>
@@ -549,7 +549,7 @@
       <summary>Provide workspace isolation</summary>
       <description>Dash shows only windows from the current workspace</description>
     </key>
-     <key type="b" name="overview-click-to-exit">
+    <key type="b" name="overview-click-to-exit">
       <default>false</default>
       <summary>Close overview by clicking in empty space</summary>
       <description>Close overview or app grid by clicking in empty space</description>
@@ -569,7 +569,7 @@
       <summary>Application title font size</summary>
       <description>When the applications are ungrouped, this defines the application titles font size.</description>
     </key>
-    <key name="group-apps-label-font-weight" enum="org.gnome.shell.extensions.dash-to-panel.fontWeight">
+    <key name="group-apps-label-font-weight" enum="org.gnome.shell.extensions.dash-to-panel-menu.fontWeight">
       <default>'inherit'</default>
       <summary>Font weight of application titles</summary>
       <description>When the applications are ungrouped, this defines font weight of application titles. Supported values: inherit (from theme), normal, lighter, bold and bolder.</description>
@@ -615,9 +615,9 @@
       <description>Specifies if a panel is shown on every monitors</description>
     </key>
     <key type="ai" name="available-monitors">
-     <default>[]</default>
-     <summary>Available monitors</summary>
-     <description>Available gnome-shell (Mutter) monitors, internal use</description>
+      <default>[]</default>
+      <summary>Available monitors</summary>
+      <description>Available gnome-shell (Mutter) monitors, internal use</description>
     </key>
     <key type="b" name="isolate-monitors">
       <default>false</default>
@@ -642,27 +642,27 @@
       <default>true</default>
       <summary>Activate only one window</summary>
     </key>
-    <key name="click-action" enum="org.gnome.shell.extensions.dash-to-panel.clickAction">
+    <key name="click-action" enum="org.gnome.shell.extensions.dash-to-panel-menu.clickAction">
       <default>'CYCLE-MIN'</default>
       <summary>Action when clicking on a running app</summary>
       <description>Set the action that is executed when clicking on the icon of a running application</description>
     </key>
-    <key name="shift-click-action" enum="org.gnome.shell.extensions.dash-to-panel.clickAction">
+    <key name="shift-click-action" enum="org.gnome.shell.extensions.dash-to-panel-menu.clickAction">
       <default>'MINIMIZE'</default>
       <summary>Action when shift+clicking on a running app</summary>
       <description>Set the action that is executed when shift+clicking on the icon of a running application</description>
     </key>
-    <key name="middle-click-action" enum="org.gnome.shell.extensions.dash-to-panel.clickAction">
+    <key name="middle-click-action" enum="org.gnome.shell.extensions.dash-to-panel-menu.clickAction">
       <default>'LAUNCH'</default>
       <summary>Action when clicking on a running app</summary>
       <description>Set the action that is executed when middle-clicking on the icon of a running application</description>
     </key>
-    <key name="shift-middle-click-action" enum="org.gnome.shell.extensions.dash-to-panel.clickAction">
+    <key name="shift-middle-click-action" enum="org.gnome.shell.extensions.dash-to-panel-menu.clickAction">
       <default>'LAUNCH'</default>
       <summary>Action when clicking on a running app</summary>
       <description>Set the action that is executed when shift+middle-clicking on the icon of a running application</description>
     </key>
-    <key name="scroll-panel-action" enum="org.gnome.shell.extensions.dash-to-panel.scrollAction">
+    <key name="scroll-panel-action" enum="org.gnome.shell.extensions.dash-to-panel-menu.scrollAction">
       <default>'SWITCH_WORKSPACE'</default>
       <summary>Action when scrolling over the panel</summary>
       <description>Set the action that is executed when scrolling over the panel</description>
@@ -676,7 +676,7 @@
       <default>true</default>
       <summary>Show the workspace switch head-up when workspace is changed by scrolling on the panel</summary>
     </key>
-    <key name="scroll-icon-action" enum="org.gnome.shell.extensions.dash-to-panel.scrollAction">
+    <key name="scroll-icon-action" enum="org.gnome.shell.extensions.dash-to-panel-menu.scrollAction">
       <default>'CYCLE_WINDOWS'</default>
       <summary>Action when scrolling over a running app</summary>
       <description>Set the action that is executed when scrolling over a running application</description>
@@ -722,34 +722,34 @@
       <description>Set the size of the tray font. (0 for default)</description>
     </key>
     <key type="i" name="leftbox-size">
-        <default>0</default>
-        <summary>Leftbox font size</summary>
-        <description>Set the size of the leftBox font. (0 for default)</description>
+      <default>0</default>
+      <summary>Leftbox font size</summary>
+      <description>Set the size of the leftBox font. (0 for default)</description>
     </key>
     <key type="i" name="appicon-margin">
-        <default>8</default>
-        <summary>App icon margin</summary>
-        <description>Set the margin for application icons in the embedded dash.</description>
+      <default>8</default>
+      <summary>App icon margin</summary>
+      <description>Set the margin for application icons in the embedded dash.</description>
     </key>
     <key type="i" name="appicon-padding">
-        <default>4</default>
-        <summary>App icon padding</summary>
-        <description>Set the padding for application icons in the embedded dash.</description>
+      <default>4</default>
+      <summary>App icon padding</summary>
+      <description>Set the padding for application icons in the embedded dash.</description>
     </key>
     <key type="i" name="tray-padding">
-        <default>-1</default>
-        <summary>Tray item padding</summary>
-        <description>Set the size of the tray padding. (-1 for default)</description>
+      <default>-1</default>
+      <summary>Tray item padding</summary>
+      <description>Set the size of the tray padding. (-1 for default)</description>
     </key>
     <key type="i" name="leftbox-padding">
-        <default>-1</default>
-        <summary>Leftbox item padding</summary>
-        <description>Set the size of the leftBox padding. (-1 for default)</description>
+      <default>-1</default>
+      <summary>Leftbox item padding</summary>
+      <description>Set the size of the leftBox padding. (-1 for default)</description>
     </key>
     <key type="i" name="status-icon-padding">
-        <default>-1</default>
-        <summary>Status icon padding</summary>
-        <description>Set the size of the aggregate (status) menu icon padding. (-1 for default)</description>
+      <default>-1</default>
+      <summary>Status icon padding</summary>
+      <description>Set the size of the aggregate (status) menu icon padding. (-1 for default)</description>
     </key>
     <key type="b" name="animate-app-switch">
       <default>true</default>
@@ -763,7 +763,7 @@
       <default>false</default>
       <summary>Animate app icon on hover</summary>
     </key>
-    <key name="animate-appicon-hover-animation-type" enum="org.gnome.shell.extensions.dash-to-panel.appIconHoverAnimationType">
+    <key name="animate-appicon-hover-animation-type" enum="org.gnome.shell.extensions.dash-to-panel-menu.appIconHoverAnimationType">
       <default>'SIMPLE'</default>
       <summary>App icon hover animation type</summary>
     </key>
@@ -819,7 +819,7 @@
       <summary>Timeout to hide the dock, in seconds</summary>
       <description>Sets the time duration before the dock is hidden again.</description>
     </key>
-    <key name="hotkeys-overlay-combo" enum="org.gnome.shell.extensions.dash-to-panel.hotkeyOverlay">
+    <key name="hotkeys-overlay-combo" enum="org.gnome.shell.extensions.dash-to-panel-menu.hotkeyOverlay">
       <default>'TEMPORARILY'</default>
       <summary>Transitivity of the number overlay</summary>
       <description>You can choose between NEVER, TEMPORARILY and ALWAYS.</description>
@@ -829,7 +829,7 @@
       <summary>Super Hot-Keys</summary>
       <description>Launch and switch between dash items using Super+(0-9)</description>
     </key>
-    <key name="hotkey-prefix-text" enum="org.gnome.shell.extensions.dash-to-panel.hotkeyPrefix">
+    <key name="hotkey-prefix-text" enum="org.gnome.shell.extensions.dash-to-panel-menu.hotkeyPrefix">
       <default>'Super'</default>
       <summary>Prefix to use for hotkeys</summary>
       <description>You can choose between Super or SuperAlt as the prefix for hotkeys.</description>
@@ -839,7 +839,7 @@
       <summary>Show window previews</summary>
       <description>When multiple instances of the application are available, show their window previews</description>
     </key>
-    <key name="shortcut-num-keys" enum="org.gnome.shell.extensions.dash-to-panel.hotkeyNumberKeys">
+    <key name="shortcut-num-keys" enum="org.gnome.shell.extensions.dash-to-panel-menu.hotkeyNumberKeys">
       <default>'BOTH'</default>
       <summary>Hotkeys number keys</summary>
       <description>Which number keys are used for the hotkeys</description>
@@ -1264,7 +1264,7 @@
         Keybinding to either show or launch the 10th application in the dash.
       </description>
     </key>
-     <key type="b" name="progress-show-bar">
+    <key type="b" name="progress-show-bar">
       <default>true</default>
       <summary>Show progress bar on app icon</summary>
       <description>Whether to show progress bar overlay on app icon, for supported applications.</description>

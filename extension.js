@@ -46,7 +46,7 @@ function init() {
     this._realHasOverview = Main.sessionMode.hasOverview;
 
     Convenience.initTranslations(Utils.TRANSLATION_DOMAIN);
-    
+
     //create an object that persists until gnome-shell is restarted, even if the extension is disabled
     Me.persistentStorage = {};
 }
@@ -62,14 +62,14 @@ function enable() {
     //create a global object that can emit signals and conveniently expose functionalities to other extensions 
     global.dashToPanel = {};
     Signals.addSignalMethods(global.dashToPanel);
-    
+
     _enable();
 }
 
 function _enable() {
     let ubuntuDock = Main.extensionManager ?
-                     Main.extensionManager.lookup(UBUNTU_DOCK_UUID) : //gnome-shell >= 3.33.4
-                     ExtensionUtils.extensions[UBUNTU_DOCK_UUID];
+        Main.extensionManager.lookup(UBUNTU_DOCK_UUID) : //gnome-shell >= 3.33.4
+        ExtensionUtils.extensions[ UBUNTU_DOCK_UUID ];
 
     if (ubuntuDock && ubuntuDock.stateObj && ubuntuDock.stateObj.dockManager) {
         // Disable Ubuntu Dock
@@ -89,7 +89,7 @@ function _enable() {
 
     if (panelManager) return; //already initialized
 
-    Me.settings = Convenience.getSettings('org.gnome.shell.extensions.dash-to-panel');
+    Me.settings = Convenience.getSettings('org.gnome.shell.extensions.dash-to-panel-menu');
     Me.desktopSettings = Convenience.getSettings('org.gnome.desktop.interface');
 
     Main.layoutManager.startInOverview = !Me.settings.get_boolean('hide-overview-on-startup');
@@ -97,20 +97,20 @@ function _enable() {
     if (Me.settings.get_boolean('hide-overview-on-startup') && Main.layoutManager._startingUp) {
         Main.sessionMode.hasOverview = false;
         Main.layoutManager.connect('startup-complete', () => {
-            Main.sessionMode.hasOverview = this._realHasOverview
+            Main.sessionMode.hasOverview = this._realHasOverview;
         });
     }
 
     panelManager = new PanelManager.dtpPanelManager();
 
     panelManager.enable();
-    
+
     Utils.removeKeybinding('open-application-menu');
     Utils.addKeybinding(
         'open-application-menu',
         new Gio.Settings({ schema_id: WindowManager.SHELL_KEYBINDINGS_SCHEMA }),
-        Lang.bind(this, function() {
-            if(Me.settings.get_boolean('show-appmenu'))
+        Lang.bind(this, function () {
+            if (Me.settings.get_boolean('show-appmenu'))
                 Main.wm._toggleAppMenu();
             else
                 panelManager.primaryPanel.taskbar.popupFocusedAppSecondaryMenu();
@@ -126,7 +126,7 @@ function disable(reset) {
 
     delete Me.settings;
     panelManager = null;
-    
+
     Utils.removeKeybinding('open-application-menu');
     Utils.addKeybinding(
         'open-application-menu',

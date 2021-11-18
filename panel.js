@@ -1065,17 +1065,8 @@ var dtpPanel = Utils.defineClass({
             //right click on an empty part of the panel, temporarily borrow and display the showapps context menu
             Main.layoutManager.setDummyCursorGeometry(stageX, stageY, 0, 0);
 
-<<<<<<< HEAD
-            this.showAppsIconWrapper.createMenu();
-            this.showAppsIconWrapper._menu.sourceActor = Main.layoutManager.dummyCursor;
-            this.showAppsIconWrapper.popupMenu();
-
-            return Clutter.EVENT_STOP;
-        } else if (Main.modalCount > 0 || event.get_source() != actor || 
-=======
             return this.showAppsIconWrapper.onButtonPress(Main.layoutManager.dummyCursor, event);
         } else if (Main.modalCount > 0 || event.get_source() != actor ||
->>>>>>> eb128db (fix classic apps menu click on the panel (not the ShowAppsIcon))
             (!isPress && type != Clutter.EventType.TOUCH_BEGIN) ||
             (isPress && button != 1)) {
             return Clutter.EVENT_PROPAGATE;

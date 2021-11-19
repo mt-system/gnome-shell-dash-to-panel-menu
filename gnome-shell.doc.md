@@ -43,3 +43,7 @@ Open Looking Glass ==> Alt + F2
 
 Migration to Gnome Shell 40
 https://gjs.guide/extensions/upgrading/gnome-shell-40.html#applications-grid
+
+
+GJS source code
+https://gitlab.gnome.org/GNOME/gjs/

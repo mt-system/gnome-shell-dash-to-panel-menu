@@ -1591,15 +1591,20 @@ var taskbarSecondaryMenu = Utils.defineClass({
             }
         }
 
+        const sourceActor = this._source.actor || this.sourceActor;
+        const sourceApp = this._source.app || this._app;
+
         // prepend items from the appMenu (for native gnome apps)
         if (Me.settings.get_boolean('secondarymenu-contains-appmenu')) {
-            let appMenu = this._source.app.menu;
-            if (appMenu) {
-                let remoteMenu = new imports.ui.remoteMenu.RemoteMenu(this._source.actor, this._source.app.menu, this._source.app.action_group);
+
+            if (sourceApp.menu) {
+                let remoteMenu = new imports.ui.remoteMenu.RemoteMenu(sourceActor, sourceApp.menu, sourceApp.action_group);
                 let appMenuItems = remoteMenu._getMenuItems();
+
                 for (var i = 0, l = appMenuItems.length || 0; i < l; ++i) {
                     let menuItem = appMenuItems[ i ];
                     let labelText = menuItem.actor.label_actor.text;
+
                     if (labelText == _("New Window") || labelText == _("Quit"))
                         continue;
 
@@ -1632,9 +1637,11 @@ var taskbarSecondaryMenu = Utils.defineClass({
                     }));
 
                     menuItem.actor.get_parent().remove_child(menuItem.actor);
+
                     if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
                         let newSubMenuMenuItem = new PopupMenu.PopupSubMenuMenuItem(labelText);
                         let appSubMenuItems = menuItem.menu._getMenuItems();
+
                         for (let appSubMenuIdx in appSubMenuItems) {
                             let subMenuItem = appSubMenuItems[ appSubMenuIdx ];
                             subMenuItem.actor.get_parent().remove_child(subMenuItem.actor);
@@ -1652,10 +1659,12 @@ var taskbarSecondaryMenu = Utils.defineClass({
             }
         }
 
+        if (this.box.get_children()[ 0 ] instanceof PopupMenu.PopupSeparatorMenuItem)
+            this.box.remove_child(this.box.get_children()[ 0 ].actor);
+
         // quit menu
-        let app = this._source.app;
         let window = this._source.window;
-        let count = window ? 1 : getInterestingWindows(app).length;
+        let count = window ? 1 : getInterestingWindows(sourceApp).length;
         if (count > 0) {
             this._appendSeparator();
             let quitFromTaskbarMenuText = "";
@@ -1666,8 +1675,7 @@ var taskbarSecondaryMenu = Utils.defineClass({
 
             this._quitfromTaskbarMenuItem = this._appendMenuItem(quitFromTaskbarMenuText);
             this._quitfromTaskbarMenuItem.connect('activate', Lang.bind(this, function () {
-                let app = this._source.app;
-                let windows = window ? [ window ] : app.get_windows();
+                let windows = window ? [ window ] : sourceApp.get_windows();
                 for (i = 0; i < windows.length; i++) {
                     this._closeWindowInstance(windows[ i ]);
                 }

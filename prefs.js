@@ -2311,6 +2311,15 @@ const Preferences = new Lang.Class({
 
 const BuilderScope = GObject.registerClass({
     Implements: [ Gtk.BuilderScope ],
+    // If the GTypeName is omitted then GJS will generate a unique type name
+    // for you. Otherwise you should ensure to avoid any possible collisions
+    // with other types (eg. GtkLabel, StLabel, ExtensionNameLabel).
+    // Here, when I test the orignal project forked dash-to-panel, there is no GTypeName
+    // specified and when the preferences window is open for both extensions, GJS is creating
+    // the same id supposed to be unique (poor algorithm apparently). So I set the GTypeName
+    // manually and it is then possible to open both preferences together.
+    // Anyway, maybe another application could create a GType using the name "BuilderScope"
+    GTypeName: 'DashToPanelMenu.BuilderScope'
 }, class BuilderScope extends GObject.Object {
 
     _init(preferences) {

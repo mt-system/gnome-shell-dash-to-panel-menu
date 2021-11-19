@@ -16,12 +16,6 @@ const Signals = imports.signals;
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Utils = Me.imports.utils;
 
-/* logError(new Error('1111111111'));
-log('2222222222222');
-log(AppDisplay.AppIconMenu);
-log('333333333');
-log(AppDisplay); */
-
 var Menu = Utils.defineClass({
     Name: 'DashToPanel.SecondaryMenu',
     Extends: AppDisplay.AppIconMenu,

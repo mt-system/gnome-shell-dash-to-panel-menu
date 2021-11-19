@@ -490,8 +490,8 @@ class Menu extends PopupMenu.PopupMenu {
     }
 
 
-    popup() {
-        this.open();
+    popup(animate) {
+        this.open(animate);
     }
 
 

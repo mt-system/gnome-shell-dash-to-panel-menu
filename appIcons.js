@@ -43,6 +43,7 @@ const Main = imports.ui.main;
 const PopupMenu = imports.ui.popupMenu;
 const Util = imports.misc.util;
 const Workspace = imports.ui.workspace;
+const BoxPointer = imports.ui.boxpointer;
 
 const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Utils = Me.imports.utils;
@@ -1562,7 +1563,7 @@ var taskbarSecondaryMenu = Utils.defineClass({
         // parameter, I overwite what I need later
         this.callParent('_init', source);
 
-        let side = panel.getPosition();
+        const side = panel.getPosition();
         // Change the initialized side where required.
         this._arrowSide = side;
         this._boxPointer._arrowSide = side;
@@ -1910,7 +1911,7 @@ var ShowAppsIconWrapper = Utils.defineClass({
         if (isNewSourceActor) {
             hideMenu();
             onDestroyMenu();
-            this._currentMenu.destroy();
+            this._currentMenu?.destroy();
             this._appClassicMenu = null;
             this._menuUsefulShortcuts = null;
         }
@@ -1921,14 +1922,15 @@ var ShowAppsIconWrapper = Utils.defineClass({
 
             this._currentMenu = this._appClassicMenu;
             this._menuUsefulShortcuts = null;
+            this._currentMenu.NAME = 'apps';
             initMenu();
 
         } else if (type === 'utilities' && !this._menuUsefulShortcuts) {
 
             this._menuUsefulShortcuts = new MyShowAppsIconMenu(this.actor, this.realShowAppsIcon._dtpPanel);
-            this._menuUsefulShortcuts.updateItems(this.sourceActor);
 
             this._currentMenu = this._menuUsefulShortcuts;
+            this._currentMenu.NAME = 'utilities';
             this._appClassicMenu = null;
             initMenu();
         }
@@ -1950,7 +1952,7 @@ var ShowAppsIconWrapper = Utils.defineClass({
 
         this.actor.set_hover(true);
         // BEFORE menu.popup();
-        menu.open(BoxPointer.PopupAnimation.FULL);
+        menu.popup(BoxPointer.PopupAnimation.FULL);
         this._menuManager.ignoreRelease();
         this.emit('sync-tooltip');
 
@@ -1981,12 +1983,17 @@ var MyShowAppsIconMenu = Utils.defineClass({
     ParentConstrParams: [ [ 0 ], [ 1 ] ],
 
     _dtpRedisplay: function () {
+        items = {
+            start: [],
+            end: []
+        };
+
         this.removeAll();
 
         // Only add menu entries for commands that exist in path
         function _appendItem(obj, info) {
             if (Utils.checkIfCommandExists(info.cmd[ 0 ])) {
-                let item = obj._appendMenuItem(_(info.title));
+                let item = obj._appendMenuItem(_(info.title), info);
 
                 item.connect('activate', function () {
                     Util.spawn(info.cmd);
@@ -2069,7 +2076,7 @@ var MyShowAppsIconMenu = Utils.defineClass({
         });
 
         _appendItem(this, {
-            title: 'Settings',
+            title: 'Wifi',
             cmd: [ 'gnome-control-center', 'wifi' ]
         });
 
@@ -2079,15 +2086,17 @@ var MyShowAppsIconMenu = Utils.defineClass({
             Me.settings.get_strv('panel-context-menu-titles')
         );
 
-        this._appendSeparator();
 
-        let lockTaskbarMenuItem = this._appendMenuItem(Me.settings.get_boolean('taskbar-locked') ? _(
-            'Unlock taskbar') : _('Lock taskbar'));
+        let lockTaskbarMenuItem = this._appendMenuItem(
+            Me.settings.get_boolean('taskbar-locked') ? _('Unlock taskbar') : _('Lock taskbar'), { end: true }
+        );
+
         lockTaskbarMenuItem.connect('activate', () => {
             Me.settings.set_boolean('taskbar-locked', !Me.settings.get_boolean('taskbar-locked'));
         });
 
-        let settingsMenuItem = this._appendMenuItem(_('Dash to Panel Settings'));
+        let settingsMenuItem = this._appendMenuItem(_('Dash to Panel Settings'), { end: true });
+
         settingsMenuItem.connect('activate', function () {
             let command = [ "gnome-shell-extension-prefs" ];
 
@@ -2100,20 +2109,26 @@ var MyShowAppsIconMenu = Utils.defineClass({
 
         if (this._source._dtpPanel) {
             this._appendSeparator();
-            let item = this._appendMenuItem(this._source._dtpPanel._restoreWindowList ? _('Restore Windows') : _('Show Desktop'));
+            let item = this._appendMenuItem(this._source._dtpPanel._restoreWindowList ? _('Restore Windows') : _('Show Desktop'), { end: true });
             item.connect('activate', Lang.bind(this._source._dtpPanel, this._source._dtpPanel._onShowDesktopButtonPress));
         }
-    },
 
-    _appendSeparator() {
-        let separator = new PopupMenu.PopupSeparatorMenuItem();
-        this.addMenuItem(separator);
+
+        const sortItems = items => items.sort((a, b) => a.name.localeCompare(b.name));
+
+        [
+            ...sortItems(items.start),
+            { menu: new PopupMenu.PopupSeparatorMenuItem() },
+            ...sortItems(items.end)
+        ].
+            forEach(({ menu }) => this.addMenuItem(menu));
+
     },
 
 
     _appendMenuItem(labelText, info = {}) {
 
-        const { cmd: command, hint } = info;
+        const { cmd: command, hint, end } = info;
 
         const shellApp = appDesktopId => {
             const appInfo = Gio.DesktopAppInfo.new(appDesktopId);
@@ -2168,8 +2183,10 @@ var MyShowAppsIconMenu = Utils.defineClass({
                     return true;
             });
 
-            if (apps.length > 1)
-                log(`MyShowAppsIconMenu: few icons available for the command "${fullCommand}". First one have been chosen`);
+            if (apps.length > 1) {
+                const appNames = apps.map(app => `id: ${app.get_id()}, name: ${app.get_name()}`).join('\n');
+                log(`MyShowAppsIconMenu: few icons available for the command "${fullCommand}":\n${appNames}\nFirst one have been chosen`);
+            }
 
             return apps[ 0 ];
         };
@@ -2189,11 +2206,14 @@ var MyShowAppsIconMenu = Utils.defineClass({
             return new PopupMenu.PopupMenuItem(labelText);
         };
 
+        const menu = getMenuItem();
 
-        const item = getMenuItem();
-        this.addMenuItem(item);
+        items[ end ? 'end' : 'start' ].push({
+            menu,
+            name: labelText
+        });
 
-        return item;
+        return menu;
     }
 });
 adjustMenuRedisplay(MyShowAppsIconMenu.prototype);
@@ -2202,7 +2222,6 @@ adjustMenuRedisplay(MyShowAppsIconMenu.prototype);
 function adjustMenuRedisplay(menuProto) {
     menuProto[ menuRedisplayFunc ] = function () { this._dtpRedisplay(menuRedisplayFunc); };
 }
-
 
 
 var getIconContainerStyle = function (isVertical) {

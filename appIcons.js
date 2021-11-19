@@ -1798,7 +1798,7 @@ var ShowAppsIconWrapper = Utils.defineClass({
         this.actor.connect('clicked', Lang.bind(this, this._onClicked));
         this.actor.connect('popup-menu', Lang.bind(this, this._onKeyboardPopupMenu));
 
-        this._menuManager = new PopupMenu.PopupMenuManager(this.actor);
+        this._menuManager = null; //  new PopupMenu.PopupMenuManager(this.actor);
         this._menuTimeoutId = 0;
 
         this.realShowAppsIcon._dtpPanel = dtpPanel;
@@ -1909,8 +1909,6 @@ var ShowAppsIconWrapper = Utils.defineClass({
         };
 
         if (isNewSourceActor) {
-            hideMenu();
-            onDestroyMenu();
             this._currentMenu?.destroy();
             this._appClassicMenu = null;
             this._menuUsefulShortcuts = null;
@@ -1946,12 +1944,13 @@ var ShowAppsIconWrapper = Utils.defineClass({
 
         const isNewSourceActor = this.sourceActor !== sourceActor;
         this.sourceActor = sourceActor;
+        this._menuManager = new PopupMenu.PopupMenuManager(sourceActor);
 
         const menu = this.createMenu(type, isNewSourceActor);
         menu.sourceActor = sourceActor;
 
         this.actor.set_hover(true);
-        // BEFORE menu.popup();
+
         menu.popup(BoxPointer.PopupAnimation.FULL);
         this._menuManager.ignoreRelease();
         this.emit('sync-tooltip');

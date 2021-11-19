@@ -1061,7 +1061,7 @@ var dtpPanel = Utils.defineClass({
         let button = isPress ? event.get_button() : -1;
         let [ stageX, stageY ] = event.get_coords();
 
-        if ((button !== 1) && global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, stageX, stageY) == this.panel.actor) {
+        if (button !== 1 && global.stage.get_actor_at_pos(Clutter.PickMode.REACTIVE, stageX, stageY) == this.panel.actor) {
             //right click on an empty part of the panel, temporarily borrow and display the showapps context menu
             Main.layoutManager.setDummyCursorGeometry(stageX, stageY, 0, 0);
 

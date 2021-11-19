@@ -187,6 +187,12 @@
     border-radius: 0;
 }
 
+/*
+// CSS transform properties are not implemented in Gnome Shell (Clutter I think)
+.dashtopanelMainPanel .show-apps:hover .show-apps-icon {
+    transform: rotate(45);
+} */
+
 /* .app-well-app */
 #dashtopanelScrollview .overview-icon StWidget {
     margin: 0;

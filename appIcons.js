@@ -1872,7 +1872,7 @@ var ShowAppsIconWrapper = Utils.defineClass({
     },
 
     _onMenuPoppedDown: function () {
-        this._currentMenu.sourceActor = this.actor;
+        // this._currentMenu.sourceActor = this.actor;
         this.actor.sync_hover();
         this.emit('menu-state-changed', false);
     },
